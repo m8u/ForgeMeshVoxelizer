@@ -6,6 +6,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -82,10 +83,10 @@ public class MeshVoxelizer {
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents {
 
-        static Block voxelizerOriginBlock = new Block(AbstractBlock.Properties.create(Material.ROCK))
-                .setRegistryName("meshvoxelizer","voxilizer_origin");
-        static BlockItem voxelizerOriginBlockItem = (BlockItem) new BlockItem(voxelizerOriginBlock, new Item.Properties())
-                .setRegistryName(voxelizerOriginBlock.getRegistryName());
+        static Block voxelizerOriginBlock = new VoxelizerOriginBlock();
+        static BlockItem voxelizerOriginBlockItem = (BlockItem) new BlockItem(voxelizerOriginBlock,
+                new Item.Properties().group(ItemGroup.SEARCH))
+                    .setRegistryName(voxelizerOriginBlock.getRegistryName());
 
         @SubscribeEvent
         public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent) {
@@ -102,6 +103,5 @@ public class MeshVoxelizer {
 
             itemRegistryEvent.getRegistry().register(voxelizerOriginBlockItem);
         }
-
     }
 }
