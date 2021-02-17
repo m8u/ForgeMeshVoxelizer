@@ -12,6 +12,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.world.World;
 
+
 public class VoxelizerOriginBlock extends Block {
     public VoxelizerOriginBlock() {
         super(AbstractBlock.Properties.create(Material.MISCELLANEOUS));

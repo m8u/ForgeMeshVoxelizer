@@ -4,9 +4,16 @@ import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.DialogTexts;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.command.ICommandSource;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -18,9 +25,12 @@ import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.server.command.TextComponentHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.util.stream.Collectors;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -42,6 +52,13 @@ public class MeshVoxelizer {
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+
+
+
+        File modelsDirectory = new File(Minecraft.getInstance().gameDir+"/mods/MeshVoxelizer/");
+        if (!modelsDirectory.exists()) {
+            modelsDirectory.mkdir();
+        }
     }
 
     private void setup(final FMLCommonSetupEvent event) {
@@ -103,5 +120,7 @@ public class MeshVoxelizer {
 
             itemRegistryEvent.getRegistry().register(voxelizerOriginBlockItem);
         }
+
+
     }
 }
