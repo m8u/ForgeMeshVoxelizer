@@ -14,9 +14,11 @@ import java.io.File;
 public class ChooseModelFileScreen extends Screen {
     protected ModelsList modelsList;
     protected Button useThisModelButton;
+    protected String selectedBefore;
 
-    protected ChooseModelFileScreen() {
+    protected ChooseModelFileScreen(String selectedBefore) {
         super(new StringTextComponent("ChooseModelFileScreen"));
+        this.selectedBefore = selectedBefore;
     }
 
     public boolean isPauseScreen() {
@@ -24,32 +26,51 @@ public class ChooseModelFileScreen extends Screen {
     }
 
     protected void init() {
-        this.modelsList = new ModelsList(this.minecraft, this.width/5, this.height/2, this.height/6, 256, 16);
+        this.modelsList = new ModelsList(this.minecraft, this.width/5, this.height/2, this.height/4, 256, 16);
         listModelsDirectory();
-        //this.modelsList.setSelected(this.modelsList.getEntry(1));
 
         useThisModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 3 * 2, 128, 20,
                 new StringTextComponent("Use this model"), (p_214187_1_) -> {
-            this.minecraft.displayGuiScreen(new VoxelizerScreen());
+            this.minecraft.displayGuiScreen(new VoxelizerScreen(this.modelsList.getSelected().modelName));
         }));
     }
 
     protected void listModelsDirectory() {
         File f = new File(this.minecraft.gameDir.getAbsolutePath()+"/mods/MeshVoxelizer");
 
-        try {
-            for (String fileName : f.list()) {
-                ModelsList.ModelsListEntry entry = modelsList.new ModelsListEntry(fileName);
-                this.modelsList.addEntry(entry);
+        for (String fileName : f.list()) {
+            ModelsList.ModelsListEntry entry = modelsList.new ModelsListEntry(fileName);
+            this.modelsList.addEntry(entry);
+            if (fileName.equals(this.selectedBefore)) {
+                this.modelsList.setSelected(entry);
             }
-        } catch (Exception e) {
-            System.out.println(e.toString());
+        }
+        if (this.modelsList.getSelected() == null) {
+            this.modelsList.setSelected(this.modelsList.getEntry(0));
         }
     }
 
     public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
         this.modelsList.render(matrixStack, mouseX, mouseY, partialTicks);
         super.render(matrixStack, mouseX, mouseY, partialTicks);
+
+        String[] modelsDirectoryMessage = {"Please put your .obj files",
+                "into 'mods/MeshVoxelizer/' directory",
+                "Models must be triangulated!"};
+        this.font.drawString(matrixStack, modelsDirectoryMessage[0],
+                (int) (this.width / 2 - this.font.getStringWidth(modelsDirectoryMessage[0]) / 2),
+                (int) (this.height / 12), 0xFFFFFF);
+        this.font.drawString(matrixStack, modelsDirectoryMessage[1],
+                (int) (this.width / 2 - this.font.getStringWidth(modelsDirectoryMessage[1]) / 2),
+                (int) (this.height / 12) + this.font.FONT_HEIGHT+4, 0xFFFFFF);
+        this.font.drawString(matrixStack, modelsDirectoryMessage[2],
+                (int) (this.width / 2 - this.font.getStringWidth(modelsDirectoryMessage[2]) / 2),
+                (int) (this.height / 12) + (this.font.FONT_HEIGHT+4) * 3, 0xFFFF55);
+
+        this.font.drawString(matrixStack, this.modelsList.getSelected().modelName,
+                (int) (this.width / 2 - this.font.getStringWidth(this.modelsList.getSelected().modelName) / 2),
+                (int) (this.height / 3 * 2) - this.font.FONT_HEIGHT*2, 0x55FF55);
+
     }
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {

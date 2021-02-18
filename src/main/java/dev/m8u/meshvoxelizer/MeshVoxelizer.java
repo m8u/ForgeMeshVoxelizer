@@ -100,7 +100,7 @@ public class MeshVoxelizer {
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents {
 
-        static Block voxelizerOriginBlock = new VoxelizerOriginBlock();
+        static VoxelizerOriginBlock voxelizerOriginBlock = new VoxelizerOriginBlock();
         static BlockItem voxelizerOriginBlockItem = (BlockItem) new BlockItem(voxelizerOriginBlock,
                 new Item.Properties().group(ItemGroup.SEARCH))
                     .setRegistryName(voxelizerOriginBlock.getRegistryName());
