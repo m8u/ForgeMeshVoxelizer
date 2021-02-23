@@ -35,6 +35,7 @@ public class ChooseModelFileScreen extends Screen {
         }));
     }
 
+    // Fill the gui list with .obj filenames
     protected void listModelsDirectory() {
         File f = new File(this.minecraft.gameDir.getAbsolutePath()+"/mods/MeshVoxelizer");
 
@@ -54,9 +55,9 @@ public class ChooseModelFileScreen extends Screen {
         this.modelsList.render(matrixStack, mouseX, mouseY, partialTicks);
         super.render(matrixStack, mouseX, mouseY, partialTicks);
 
-        String[] modelsDirectoryMessage = {"Please put your .obj files",
-                "into 'mods/MeshVoxelizer/' directory",
-                "Models must be triangulated!"};
+        String[] modelsDirectoryMessage = { "Please put your .obj files into 'mods/MeshVoxelizer/' directory",
+                "alongside with your .mtl libs and textures (if there any)",
+                "Models must be triangulated!" };
         this.font.drawString(matrixStack, modelsDirectoryMessage[0],
                 (int) (this.width / 2 - this.font.getStringWidth(modelsDirectoryMessage[0]) / 2),
                 (int) (this.height / 12), 0xFFFFFF);

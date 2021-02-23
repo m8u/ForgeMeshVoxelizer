@@ -26,4 +26,6 @@ public class VoxelizerOriginBlock extends Block {
         Minecraft.getInstance().displayGuiScreen(new VoxelizerScreen(null));
         return ActionResultType.SUCCESS;
     }
+
+
 }

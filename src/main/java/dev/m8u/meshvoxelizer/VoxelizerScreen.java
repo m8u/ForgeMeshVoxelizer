@@ -6,15 +6,15 @@ import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.text.StringTextComponent;
 
-
 public class VoxelizerScreen extends Screen {
     protected Button chooseModelButton;
     protected Button voxelizeButton;
+
     protected String filenameSelected;
 
     public VoxelizerScreen(String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
-            this.filenameSelected = selected != null ? selected: "";
+        this.filenameSelected = selected != null ? selected: "";
     }
 
     protected void init() {
@@ -24,6 +24,9 @@ public class VoxelizerScreen extends Screen {
         }));
         this.voxelizeButton = this.addButton(new Button(this.width /  2 - 32, this.height / 4 * 3, 64, 20,
                 new StringTextComponent("Voxelize"), (p_214187_1_) -> {
+            new Thread(() -> {
+                new Rasterizer().run(filenameSelected);
+            }).start();
         }));
     }
 
@@ -35,7 +38,6 @@ public class VoxelizerScreen extends Screen {
         super.renderBackground(matrixStack);
     }
 
-    @Override
     public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
         this.renderBackground(matrixStack);
         super.render(matrixStack, mouseX, mouseY, partialTicks);
@@ -44,6 +46,7 @@ public class VoxelizerScreen extends Screen {
         this.font.drawString(matrixStack, selectedStateMessage, (int) (this.width / 2 - this.font.getStringWidth(selectedStateMessage) / 2),
                 (int) (this.height / 2), 0xFFFFFF);
     }
+
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         System.out.println("keyPressed");
@@ -55,5 +58,11 @@ public class VoxelizerScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+
     }
+
+
+
+
+
 }
