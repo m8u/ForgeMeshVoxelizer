@@ -6,18 +6,22 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.widget.list.ExtendedList;
 import net.minecraft.client.util.InputMappings;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
 
 import java.io.File;
 
 
 public class ChooseModelFileScreen extends Screen {
+    BlockPos originBlockPos;
+
     protected ModelsList modelsList;
     protected Button useThisModelButton;
     protected String selectedBefore;
 
-    protected ChooseModelFileScreen(String selectedBefore) {
+    protected ChooseModelFileScreen(BlockPos originBlockPos, String selectedBefore) {
         super(new StringTextComponent("ChooseModelFileScreen"));
+        this.originBlockPos = originBlockPos;
         this.selectedBefore = selectedBefore;
     }
 
@@ -31,7 +35,7 @@ public class ChooseModelFileScreen extends Screen {
 
         useThisModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 3 * 2, 128, 20,
                 new StringTextComponent("Use this model"), (p_214187_1_) -> {
-            this.minecraft.displayGuiScreen(new VoxelizerScreen(this.modelsList.getSelected().modelName));
+            this.minecraft.displayGuiScreen(new VoxelizerScreen(this.originBlockPos, this.modelsList.getSelected().modelName));
         }));
     }
 

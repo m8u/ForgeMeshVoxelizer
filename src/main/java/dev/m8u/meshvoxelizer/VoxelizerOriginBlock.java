@@ -23,7 +23,7 @@ public class VoxelizerOriginBlock extends Block {
     @Override
     public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit) {
         LOGGER.info("onBlockActivated");
-        Minecraft.getInstance().displayGuiScreen(new VoxelizerScreen(null));
+        Minecraft.getInstance().displayGuiScreen(new VoxelizerScreen(pos, null));
         return ActionResultType.SUCCESS;
     }
 
