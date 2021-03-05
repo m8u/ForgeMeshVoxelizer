@@ -1,6 +1,11 @@
 package dev.m8u.meshvoxelizer;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
@@ -8,13 +13,18 @@ import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import org.lwjgl.opengl.GL;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.security.Key;
 
 public class VoxelizerScreen extends Screen {
+    GLRasterizer rasterizer;
+
     protected BlockPos originBlockPos;
 
     protected Button chooseModelButton;
@@ -23,9 +33,12 @@ public class VoxelizerScreen extends Screen {
 
     protected String filenameSelected;
 
+    boolean shouldUnregisterFromEventBus = false;
+
     public VoxelizerScreen(BlockPos originBlockPos, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
 
+        this.rasterizer = GLRasterizer.getInstance();
 
         this.originBlockPos = originBlockPos;
         this.filenameSelected = selected != null ? selected: "";
@@ -83,26 +96,33 @@ public class VoxelizerScreen extends Screen {
         } else if (this.minecraft.gameSettings.keyBindInventory.isActiveAndMatches(key) && !this.voxelResTextField.isFocused()) {
             this.closeScreen();
             return true;
-        } else if (this.minecraft.gameSettings.keyBindSneak.isActiveAndMatches(key)) {
-            MinecraftForge.EVENT_BUS.register(this);
-            return true;
-        } else if (this.minecraft.gameSettings.keyBindJump.isActiveAndMatches(key)) {
-            MinecraftForge.EVENT_BUS.unregister(this);
-            return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     protected void voxelizeInParallel() {
-        //new Thread(() -> {
+        new Thread(() -> {
+            MinecraftForge.EVENT_BUS.register(this);
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
-            Color[][][] voxels = GLRasterizer.getInstance().rasterizeMeshCuts(this.minecraft, this.originBlockPos, filenameSelected, voxelResolution);
-        //}).start();
+            Color[][][] voxels = rasterizer.rasterizeMeshCuts(this.minecraft, this.originBlockPos, filenameSelected, voxelResolution);
+            this.shouldUnregisterFromEventBus = true;
+        }).start();
     }
 
     @SubscribeEvent
     public void build(final TickEvent event) {
-        System.out.println(this.originBlockPos);
+        if (event.type == TickEvent.Type.RENDER) {
+            if (!this.rasterizer.blocksStack.isEmpty()) {
+                this.minecraft.world.setBlockState(this.rasterizer.blocksStack.get(0).blockPos,
+                        this.rasterizer.blocksStack.get(0).blockState, 2);
+                System.out.println(this.rasterizer.blocksStack.get(0).blockPos);
+                this.rasterizer.blocksStack.remove(0);
+            }
+
+            if (shouldUnregisterFromEventBus && this.rasterizer.blocksStack.isEmpty()) {
+                MinecraftForge.EVENT_BUS.unregister(this);
+            }
+        }
     }
 
 

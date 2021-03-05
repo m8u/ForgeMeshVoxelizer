@@ -1,8 +1,9 @@
 package dev.m8u.meshvoxelizer;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.concurrent.TickDelayedTask;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.util.Constants;
 import org.lwjgl.glfw.*;
@@ -11,6 +12,7 @@ import org.lwjgl.opengl.*;
 import java.awt.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -23,6 +25,8 @@ public class GLRasterizer {
     private int voxelResolution;
     private long window;
     WavefontOBJ model;
+
+    ArrayList<StackEntry> blocksStack = new ArrayList<>();
 
     public static GLRasterizer getInstance() {
         return new GLRasterizer();
@@ -123,11 +127,10 @@ public class GLRasterizer {
                         if (pass.getKey().contains("z")) {
                             //voxels[z][y][x] = new Color(pixelsCut[component], pixelsCut[component + 1], pixelsCut[component + 2]);
                             if (pixelsCut[component] == 1.0f) {
-                                    this.minecraft.world.setBlockState(
-                                        this.originBlockPos.add(-this.voxelResolution / 2 + x,
-                                                -this.voxelResolution / 2 + y,
-                                                -this.voxelResolution / 2 + z),
-                                        Blocks.STONE.getDefaultState(), Constants.BlockFlags.RERENDER_MAIN_THREAD | Constants.BlockFlags.NO_RERENDER); // or 4
+                                blocksStack.add(new StackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
+                                        -this.voxelResolution / 2 + y,
+                                        -this.voxelResolution / 2 + z), Blocks.STONE.getDefaultState()));
+
                                     /*try {
                                         Thread.sleep(20);
                                     } catch (InterruptedException e) {
@@ -179,6 +182,16 @@ public class GLRasterizer {
         }
 
         return voxels;
+    }
+
+
+    class StackEntry {
+        BlockPos blockPos;
+        BlockState blockState;
+        StackEntry(BlockPos blockPos, BlockState blockState) {
+            this.blockPos = blockPos;
+            this.blockState = blockState;
+        }
     }
 
 
