@@ -1,18 +1,15 @@
 package dev.m8u.meshvoxelizer;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.common.util.Constants;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 
 import java.awt.*;
 import java.io.*;
 import java.util.*;
-import java.util.List;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -26,13 +23,13 @@ public class GLRasterizer {
     private long window;
     WavefontOBJ model;
 
-    ArrayList<StackEntry> blocksStack = new ArrayList<>();
+    ArrayList<VoxelizerStackEntry> voxelizerStack = new ArrayList<>();
 
     public static GLRasterizer getInstance() {
         return new GLRasterizer();
     }
 
-    public Color[][][] rasterizeMeshCuts(Minecraft minecraft, BlockPos originBlockPos, String filename, int voxelResolution) {
+    public void rasterizeMeshCuts(Minecraft minecraft, BlockPos originBlockPos, String filename, int voxelResolution) {
         this.minecraft = minecraft;
         this.originBlockPos = originBlockPos;
         this.voxelResolution = voxelResolution;
@@ -43,15 +40,12 @@ public class GLRasterizer {
             model = new WavefontOBJ(Minecraft.getInstance().gameDir.getAbsolutePath() + "/mods/MeshVoxelizer/" + filename);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            return new Color[0][][];
         }
 
-        Color[][][] voxels = process();
+        process();
 
         glfwFreeCallbacks(window);
         glfwDestroyWindow(window);
-
-        return voxels;
     }
 
     private void initializeGLFW() {
@@ -78,25 +72,21 @@ public class GLRasterizer {
         glfwShowWindow(window);
     }
 
-    private Color[][][] process() {
-        Color[][][] voxels = new Color[this.voxelResolution][this.voxelResolution][this.voxelResolution];
+    private void process() {
         float[] pixelsCut = new float[3*this.voxelResolution*this.voxelResolution];
 
         GL.createCapabilities();
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         Map<String, int[]> passes = new HashMap<>();
-        passes.put("-z", new int[] { 0, 0, 1, 0 });
-        //passes.put("z", new int[] { 180, 0, 1, 0 });
-        //passes.put("-x", new int[] { 90, 0, 1, 0 });
-        //passes.put("x", new int[] { 270, 0, 1, 0 });
-        //passes.put("-y", new int[] { 90, 1, 0, 0 });
-        //passes.put("y", new int[] { 270, 1, 0, 0 });
+        passes.put("z", new int[] { 0, 0, 1, 0 });
+        passes.put("x", new int[] { 90, 0, 1, 0 });
+        passes.put("y", new int[] { 90, 1, 0, 0 });
 
         for (Map.Entry<String, int[]> pass : passes.entrySet()) {
             int z = 0;
-            for (float glZ = -1.0f;
-                    glZ < 1.0f;
+            for (float glZ = -1.0f - (2.0f / this.voxelResolution);
+                    glZ <= 1.0f + (2.0f / this.voxelResolution);
                     glZ += (2.0f / this.voxelResolution), z++) {
                 glLoadIdentity();
                 glOrtho(-1.0f, 1.0f, -1.0f, 1.0f, glZ, glZ + (2.0f / this.voxelResolution));
@@ -124,71 +114,43 @@ public class GLRasterizer {
                     for (int component = y * this.voxelResolution * 3, x = 0;
                             component < y * this.voxelResolution * 3 + this.voxelResolution * 3;
                             component += 3, x++) {
-                        if (pass.getKey().contains("z")) {
-                            //voxels[z][y][x] = new Color(pixelsCut[component], pixelsCut[component + 1], pixelsCut[component + 2]);
-                            if (pixelsCut[component] == 1.0f) {
-                                blocksStack.add(new StackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
-                                        -this.voxelResolution / 2 + y,
-                                        -this.voxelResolution / 2 + z), Blocks.STONE.getDefaultState()));
-
-                                    /*try {
-                                        Thread.sleep(20);
-                                    } catch (InterruptedException e) {
-                                        e.printStackTrace();
-                                    }*/
-                            }
-                        }
-                        /*else if (pass.getKey().contains("x")) {
-                            //voxels[x][y][z] = new Color(pixelsCut[component], pixelsCut[component + 1], pixelsCut[component + 2]);
-                            if (pixelsCut[component] == 1.0f) {
-                                this.minecraft.world.setBlockState(
-                                        this.originBlockPos.add(-this.voxelResolution / 2 + z,
-                                                -this.voxelResolution / 2 + y,
-                                                -this.voxelResolution / 2 + x),
-                                        Blocks.STONE.getDefaultState());
-                                try {
-                                    Thread.sleep(20);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
+                        switch (pass.getKey()) {
+                            case "z":
+                                if (pixelsCut[component] == 1.0f) {
+                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
+                                            -this.voxelResolution / 2 + y,
+                                            -this.voxelResolution / 2 + z), Blocks.STONE.getDefaultState()));
                                 }
-                            }
-                        }
-                        else if (pass.getKey().contains("y")) {
-                            //voxels[y][z][x] = new Color(pixelsCut[component], pixelsCut[component + 1], pixelsCut[component + 2]);
-                            if (pixelsCut[component] == 1.0f) {
-                                this.minecraft.world.setBlockState(
-                                        this.originBlockPos.add(-this.voxelResolution / 2 + x,
-                                                -this.voxelResolution / 2 + z,
-                                                -this.voxelResolution / 2 + y),
-                                        Blocks.STONE.getDefaultState());
-                                try {
-                                    Thread.sleep(20);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
+                                break;
+                            case "x":
+                                if (pixelsCut[component] == 1.0f) {
+                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + z,
+                                            -this.voxelResolution / 2 + y,
+                                            -this.voxelResolution / 2 + (this.voxelResolution - x)), Blocks.STONE.getDefaultState()));
                                 }
-                            }
-                        }*/
+                                break;
+                            case "y":
+                                if (pixelsCut[component] == 1.0f) {
+                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
+                                            -this.voxelResolution / 2 + (this.voxelResolution - z),
+                                            -this.voxelResolution / 2 + y), Blocks.STONE.getDefaultState()));
+                                }
+                                break;
+                        }
                     }
                 }
 
                 glfwSwapBuffers(window);
                 glfwPollEvents();
-                /*try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }*/
             }
         }
-
-        return voxels;
     }
 
 
-    class StackEntry {
+    class VoxelizerStackEntry {
         BlockPos blockPos;
         BlockState blockState;
-        StackEntry(BlockPos blockPos, BlockState blockState) {
+        VoxelizerStackEntry(BlockPos blockPos, BlockState blockState) {
             this.blockPos = blockPos;
             this.blockState = blockState;
         }
