@@ -53,8 +53,6 @@ public class MeshVoxelizer {
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
-
-
         File modelsDirectory = new File(Minecraft.getInstance().gameDir+"/mods/MeshVoxelizer/");
         if (!modelsDirectory.exists()) {
             modelsDirectory.mkdir();
@@ -120,7 +118,5 @@ public class MeshVoxelizer {
 
             itemRegistryEvent.getRegistry().register(voxelizerOriginBlockItem);
         }
-
-
     }
 }

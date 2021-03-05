@@ -7,8 +7,12 @@ import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.awt.*;
+import java.security.Key;
 
 public class VoxelizerScreen extends Screen {
     protected BlockPos originBlockPos;
@@ -21,6 +25,8 @@ public class VoxelizerScreen extends Screen {
 
     public VoxelizerScreen(BlockPos originBlockPos, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
+
+
         this.originBlockPos = originBlockPos;
         this.filenameSelected = selected != null ? selected: "";
     }
@@ -71,25 +77,32 @@ public class VoxelizerScreen extends Screen {
 
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        InputMappings.Input mouseKey = InputMappings.getInputByCode(keyCode, scanCode);
+        InputMappings.Input key = InputMappings.getInputByCode(keyCode, scanCode);
         if (super.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
-        } else if (this.minecraft.gameSettings.keyBindInventory.isActiveAndMatches(mouseKey) && !this.voxelResTextField.isFocused()) {
+        } else if (this.minecraft.gameSettings.keyBindInventory.isActiveAndMatches(key) && !this.voxelResTextField.isFocused()) {
             this.closeScreen();
+            return true;
+        } else if (this.minecraft.gameSettings.keyBindSneak.isActiveAndMatches(key)) {
+            MinecraftForge.EVENT_BUS.register(this);
+            return true;
+        } else if (this.minecraft.gameSettings.keyBindJump.isActiveAndMatches(key)) {
+            MinecraftForge.EVENT_BUS.unregister(this);
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     protected void voxelizeInParallel() {
-        new Thread(() -> {
+        //new Thread(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
             Color[][][] voxels = GLRasterizer.getInstance().rasterizeMeshCuts(this.minecraft, this.originBlockPos, filenameSelected, voxelResolution);
-        }).start();
+        //}).start();
     }
 
-    protected void build() {
-
+    @SubscribeEvent
+    public void build(final TickEvent event) {
+        System.out.println(this.originBlockPos);
     }
 
 
