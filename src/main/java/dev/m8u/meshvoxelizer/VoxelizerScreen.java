@@ -6,8 +6,10 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.SectionPos;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
+import net.minecraft.world.lighting.WorldLightManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -25,12 +27,11 @@ public class VoxelizerScreen extends Screen {
 
     protected String filenameSelected;
 
-    boolean shouldUnregisterFromEventBus = false;
+    private WorldLightManager lightManager;
 
     public VoxelizerScreen(BlockPos originBlockPos, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
 
-        this.rasterizer = GLRasterizer.getInstance();
 
         this.originBlockPos = originBlockPos;
         this.filenameSelected = selected != null ? selected: "";
@@ -39,6 +40,8 @@ public class VoxelizerScreen extends Screen {
     protected void init() {
         this.world = this.minecraft.getIntegratedServer().getWorld(
                 this.minecraft.player.world.getDimensionKey());
+        this.lightManager = this.minecraft.world.getLightManager();
+        this.rasterizer = GLRasterizer.getInstance();
 
         this.chooseModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 4, 128, 20,
                 new StringTextComponent("Choose model file"), (p_214187_1_) -> {
@@ -113,9 +116,9 @@ public class VoxelizerScreen extends Screen {
             }
 
             System.out.println(this.rasterizer.voxelizerStack.size());
-            this.minecraft.world.getLightManager().checkBlock(this.rasterizer.voxelizerStack.get(0).blockPos);
-            this.rasterizer.voxelizerStack.remove(0);
 
+            lightManager.checkBlock(this.rasterizer.voxelizerStack.get(0).blockPos);
+            this.rasterizer.voxelizerStack.remove(0);
         }
     }
 }

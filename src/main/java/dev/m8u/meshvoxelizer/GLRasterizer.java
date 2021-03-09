@@ -120,12 +120,12 @@ public class GLRasterizer {
                         switch (pass.getKey()) {
                             case "z":
                                 if (pixelsCut[component] == 1.0f) {
-                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
+                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + (this.voxelResolution - x),
                                             -this.voxelResolution / 2 + y,
                                             -this.voxelResolution / 2 + z - 1),
                                             Blocks.STONE.getDefaultState()));
                                     this.world.setBlockState(this.originBlockPos.add(
-                                                    -this.voxelResolution / 2 + x,
+                                                    -this.voxelResolution / 2 + (this.voxelResolution - x),
                                                     -this.voxelResolution / 2 + y,
                                                     -this.voxelResolution / 2 + z - 1),
                                                         Blocks.STONE.getDefaultState(), 3 | 128);
