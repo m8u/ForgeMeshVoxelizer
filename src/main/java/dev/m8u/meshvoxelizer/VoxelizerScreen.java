@@ -46,7 +46,7 @@ public class VoxelizerScreen extends Screen {
         }));
 
         this.voxelizeButton = this.addButton(new Button(this.width /  2 - 32, this.height / 4 * 3, 64, 20,
-                new StringTextComponent("Voxelize"), (p_214187_1_) -> voxelizeInParallel()));
+                new StringTextComponent("Voxelize"), (p_214187_1_) -> voxelize()));
 
         this.voxelResTextField = new TextFieldWidget(this.font,
                 this.width / 2 + 8, this.height / 2 + 32, 32, 16,
@@ -95,27 +95,27 @@ public class VoxelizerScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    protected void voxelizeInParallel() {
-        new Thread(() -> {
-            MinecraftForge.EVENT_BUS.register(this);
+    protected void voxelize() {
+        this.minecraft.getIntegratedServer().runAsync(() -> {
+            System.out.println("SERVER RUN ASYNC");
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
             rasterizer.rasterizeMeshCuts(this.minecraft, this.originBlockPos, filenameSelected, voxelResolution);
-            this.shouldUnregisterFromEventBus = true;
-        }).start();
+            MinecraftForge.EVENT_BUS.register(this);
+        });
     }
 
     @SubscribeEvent
-    public void build(final TickEvent event) {
-        if (event.type == TickEvent.Type.RENDER) {
-            if (!this.rasterizer.voxelizerStack.isEmpty()) {
-                this.world.setBlockState(this.rasterizer.voxelizerStack.get(0).blockPos,
-                        this.rasterizer.voxelizerStack.get(0).blockState);
-                this.rasterizer.voxelizerStack.remove(0);
+    public void updateLight(final TickEvent event) {
+        if (event.type == TickEvent.Type.WORLD) {
+            if (this.rasterizer.voxelizerStack.isEmpty()) {
+                MinecraftForge.EVENT_BUS.unregister(this);
+                return;
             }
 
-            if (shouldUnregisterFromEventBus && this.rasterizer.voxelizerStack.isEmpty()) {
-                MinecraftForge.EVENT_BUS.unregister(this);
-            }
+            System.out.println(this.rasterizer.voxelizerStack.size());
+            this.minecraft.world.getLightManager().checkBlock(this.rasterizer.voxelizerStack.get(0).blockPos);
+            this.rasterizer.voxelizerStack.remove(0);
+
         }
     }
 }

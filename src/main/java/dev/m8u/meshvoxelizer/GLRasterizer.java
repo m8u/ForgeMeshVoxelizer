@@ -4,10 +4,10 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-
-import java.awt.*;
+;
 import java.io.*;
 import java.util.*;
 
@@ -18,6 +18,7 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 public class GLRasterizer {
     private Minecraft minecraft;
+    private World world;
     private BlockPos originBlockPos;
     private int voxelResolution;
     private long window;
@@ -31,6 +32,7 @@ public class GLRasterizer {
 
     public void rasterizeMeshCuts(Minecraft minecraft, BlockPos originBlockPos, String filename, int voxelResolution) {
         this.minecraft = minecraft;
+        this.world = minecraft.getIntegratedServer().getWorld(minecraft.player.world.getDimensionKey());
         this.originBlockPos = originBlockPos;
         this.voxelResolution = voxelResolution;
 
@@ -78,12 +80,12 @@ public class GLRasterizer {
         GL.createCapabilities();
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-        Map<String, int[]> passes = new HashMap<>();
-        passes.put("z", new int[] { 0, 0, 1, 0 });
-        passes.put("x", new int[] { 90, 0, 1, 0 });
-        passes.put("y", new int[] { 90, 1, 0, 0 });
+        Map<String, int[][]> passes = new HashMap<>();
+        passes.put("z", new int[][] { new int[] {0, 0, 1, 0 }, new int[] {0, 0, 1, 0 } });
+        passes.put("x", new int[][] { new int[] {-90, 0, 1, 0 }, new int[] {0, 0, 1, 0 } });
+        passes.put("y", new int[][] { new int[] {-90, 1, 0, 0 }, new int[] {180, 0, 1, 0 } });
 
-        for (Map.Entry<String, int[]> pass : passes.entrySet()) {
+        for (Map.Entry<String, int[][]> pass : passes.entrySet()) {
             int z = 0;
             for (float glZ = -1.0f - (2.0f / this.voxelResolution);
                     glZ <= 1.0f + (2.0f / this.voxelResolution);
@@ -91,7 +93,8 @@ public class GLRasterizer {
                 glLoadIdentity();
                 glOrtho(-1.0f, 1.0f, -1.0f, 1.0f, glZ, glZ + (2.0f / this.voxelResolution));
                 glClear(GL_COLOR_BUFFER_BIT);
-                glRotatef(pass.getValue()[0], pass.getValue()[1], pass.getValue()[2], pass.getValue()[3]);
+                glRotatef(pass.getValue()[0][0], pass.getValue()[0][1], pass.getValue()[0][2], pass.getValue()[0][3]);
+                glRotatef(pass.getValue()[1][0], pass.getValue()[1][1], pass.getValue()[1][2], pass.getValue()[1][3]);
 
                 for (Map.Entry<String, ArrayList<ArrayList<Integer[]>>> faceRegion : model.faces.entrySet()) {
                     for (ArrayList<Integer[]> face : faceRegion.getValue()) {
@@ -119,21 +122,39 @@ public class GLRasterizer {
                                 if (pixelsCut[component] == 1.0f) {
                                     voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
                                             -this.voxelResolution / 2 + y,
-                                            -this.voxelResolution / 2 + z), Blocks.STONE.getDefaultState()));
+                                            -this.voxelResolution / 2 + z - 1),
+                                            Blocks.STONE.getDefaultState()));
+                                    this.world.setBlockState(this.originBlockPos.add(
+                                                    -this.voxelResolution / 2 + x,
+                                                    -this.voxelResolution / 2 + y,
+                                                    -this.voxelResolution / 2 + z - 1),
+                                                        Blocks.STONE.getDefaultState(), 3 | 128);
                                 }
                                 break;
                             case "x":
                                 if (pixelsCut[component] == 1.0f) {
-                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + z,
+                                    voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + z - 1,
                                             -this.voxelResolution / 2 + y,
-                                            -this.voxelResolution / 2 + (this.voxelResolution - x)), Blocks.STONE.getDefaultState()));
+                                            -this.voxelResolution / 2 + x),
+                                            Blocks.STONE.getDefaultState()));
+                                    this.world.setBlockState(this.originBlockPos.add(
+                                                    -this.voxelResolution / 2 + z - 1,
+                                                    -this.voxelResolution / 2 + y,
+                                                    -this.voxelResolution / 2 + x),
+                                                    Blocks.STONE.getDefaultState(), 3 | 128);
                                 }
                                 break;
                             case "y":
                                 if (pixelsCut[component] == 1.0f) {
                                     voxelizerStack.add(new VoxelizerStackEntry(this.originBlockPos.add(-this.voxelResolution / 2 + x,
-                                            -this.voxelResolution / 2 + (this.voxelResolution - z),
-                                            -this.voxelResolution / 2 + y), Blocks.STONE.getDefaultState()));
+                                            -this.voxelResolution / 2 + z - 1,
+                                            -this.voxelResolution / 2 + y),
+                                            Blocks.STONE.getDefaultState()));
+                                    this.world.setBlockState(this.originBlockPos.add(
+                                                    -this.voxelResolution / 2 + x,
+                                                    -this.voxelResolution / 2 + z - 1,
+                                                    -this.voxelResolution / 2 + y),
+                                                    Blocks.STONE.getDefaultState(), 3 | 128);
                                 }
                                 break;
                         }
