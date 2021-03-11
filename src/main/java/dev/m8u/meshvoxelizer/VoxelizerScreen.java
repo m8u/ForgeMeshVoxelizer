@@ -1,12 +1,12 @@
 package dev.m8u.meshvoxelizer;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.SectionPos;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.World;
 import net.minecraft.world.lighting.WorldLightManager;
@@ -14,8 +14,12 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import java.awt.*;
+
+
 public class VoxelizerScreen extends Screen {
     World world;
+    BlocksByAverageColor colorToBlockDict;
 
     GLRasterizer rasterizer;
 
@@ -32,7 +36,6 @@ public class VoxelizerScreen extends Screen {
     public VoxelizerScreen(BlockPos originBlockPos, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
 
-
         this.originBlockPos = originBlockPos;
         this.filenameSelected = selected != null ? selected: "";
     }
@@ -40,7 +43,7 @@ public class VoxelizerScreen extends Screen {
     protected void init() {
         this.world = this.minecraft.getIntegratedServer().getWorld(
                 this.minecraft.player.world.getDimensionKey());
-        this.lightManager = this.minecraft.world.getLightManager();
+        this.lightManager = this.world.getLightManager();
         this.rasterizer = GLRasterizer.getInstance();
 
         this.chooseModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 4, 128, 20,
@@ -66,6 +69,7 @@ public class VoxelizerScreen extends Screen {
     public void tick() {
         super.tick();
         this.voxelResTextField.tick();
+
     }
 
     public void renderBackground(MatrixStack matrixStack) {
@@ -99,23 +103,28 @@ public class VoxelizerScreen extends Screen {
     }
 
     protected void voxelize() {
+        this.colorToBlockDict = BlocksByAverageColor.getInstance(this.minecraft);
+
         this.minecraft.getIntegratedServer().runAsync(() -> {
-            System.out.println("SERVER RUN ASYNC");
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
-            rasterizer.rasterizeMeshCuts(this.minecraft, this.originBlockPos, filenameSelected, voxelResolution);
+            rasterizer.rasterizeMeshCuts(this, this.originBlockPos, filenameSelected, voxelResolution);
             MinecraftForge.EVENT_BUS.register(this);
         });
     }
 
+    public void setBlockClosestToColor(BlockPos blockPos, Color color) {
+        this.world.setBlockState(blockPos, colorToBlockDict.getBlockClosestToColor(color).getDefaultState(), 3 | 128);
+    }
+
     @SubscribeEvent
     public void updateLight(final TickEvent event) {
-        if (event.type == TickEvent.Type.WORLD) {
+        if (event.type == TickEvent.Type.SERVER) {
             if (this.rasterizer.voxelizerStack.isEmpty()) {
                 MinecraftForge.EVENT_BUS.unregister(this);
                 return;
             }
 
-            System.out.println(this.rasterizer.voxelizerStack.size());
+            //System.out.println(this.rasterizer.voxelizerStack.size());
 
             lightManager.checkBlock(this.rasterizer.voxelizerStack.get(0).blockPos);
             this.rasterizer.voxelizerStack.remove(0);

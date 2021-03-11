@@ -17,7 +17,6 @@ public class VoxelizerOriginBlock extends Block {
     public VoxelizerOriginBlock() {
         super(AbstractBlock.Properties.create(Material.MISCELLANEOUS));
         this.setRegistryName("meshvoxelizer","voxilizer_origin");
-
     }
 
     @Override
@@ -26,6 +25,4 @@ public class VoxelizerOriginBlock extends Block {
         Minecraft.getInstance().displayGuiScreen(new VoxelizerScreen(pos, null));
         return ActionResultType.SUCCESS;
     }
-
-
 }

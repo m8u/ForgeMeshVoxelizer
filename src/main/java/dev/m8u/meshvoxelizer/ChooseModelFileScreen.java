@@ -44,6 +44,8 @@ public class ChooseModelFileScreen extends Screen {
         File f = new File(this.minecraft.gameDir.getAbsolutePath()+"/mods/MeshVoxelizer");
 
         for (String fileName : f.list()) {
+            if (!fileName.substring(fileName.lastIndexOf('.')).equals(".obj"))
+                continue;
             ModelsList.ModelsListEntry entry = modelsList.new ModelsListEntry(fileName);
             this.modelsList.addEntry(entry);
             if (fileName.equals(this.selectedBefore)) {
