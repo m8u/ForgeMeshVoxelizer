@@ -40,7 +40,7 @@ public class WavefontOBJ {
                                 }
                                 currentNewmtl = new Material();
                                 currentNewmtl.name = mtlLineContents[1];
-                                System.out.println("find a new material: " + mtlLineContents[1]);
+                                //System.out.println("find a new material: " + mtlLineContents[1]);
                                 break;
                             case "Kd":
                                 currentNewmtl.base = new Color(Float.parseFloat(mtlLineContents[1]),
@@ -77,14 +77,14 @@ public class WavefontOBJ {
                     });
                     break;
                 case "usemtl":
-                    System.out.println("USEMTL");
+                    //System.out.println("USEMTL");
                     for (Material material : faces.keySet()) {
                         System.out.println(material.name);
                         if (material.name.equals(objLineContents[1])) {
                             currentUsemtl = material;
                         }
                     }
-                    System.out.println("using material: "+ currentUsemtl.name);
+                    //System.out.println("using material: "+ currentUsemtl.name);
                     break;
                 case "f":
                     ArrayList<Integer[]> face = new ArrayList<>();
@@ -116,9 +116,13 @@ public class WavefontOBJ {
         });
     }
 
-    class Material {
+    static class Material {
         String name;
         Color base;
         BufferedImage texture;
+
+        boolean hasTexture() {
+            return texture != null;
+        }
     }
 }

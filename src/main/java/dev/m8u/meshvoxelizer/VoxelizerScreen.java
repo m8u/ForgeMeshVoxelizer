@@ -2,22 +2,29 @@ package dev.m8u.meshvoxelizer;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.SectionPos;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.world.IWorldWriter;
 import net.minecraft.world.World;
-import net.minecraft.world.lighting.WorldLightManager;
+import net.minecraft.world.chunk.NibbleArray;
+import net.minecraft.world.lighting.*;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import javax.annotation.Nullable;
 import java.awt.*;
+import java.util.ArrayList;
 
 
-public class VoxelizerScreen extends Screen {
+public class VoxelizerScreen extends Screen implements IWorldWriter {
     World world;
     BlocksByAverageColor colorToBlockDict;
 
@@ -31,13 +38,17 @@ public class VoxelizerScreen extends Screen {
 
     protected String filenameSelected;
 
+    ArrayList<BlockPos> blocksForLightUpdate;
     private WorldLightManager lightManager;
 
     public VoxelizerScreen(BlockPos originBlockPos, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
 
+
         this.originBlockPos = originBlockPos;
         this.filenameSelected = selected != null ? selected: "";
+
+        this.blocksForLightUpdate = new ArrayList<>();
     }
 
     protected void init() {
@@ -104,30 +115,56 @@ public class VoxelizerScreen extends Screen {
 
     protected void voxelize() {
         this.colorToBlockDict = BlocksByAverageColor.getInstance(this.minecraft);
-
+        System.out.println("BLOCK DICTIONARY DEFINED");
         this.minecraft.getIntegratedServer().runAsync(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
             rasterizer.rasterizeMeshCuts(this, this.originBlockPos, filenameSelected, voxelResolution);
-            MinecraftForge.EVENT_BUS.register(this);
+            //MinecraftForge.EVENT_BUS.register(this);
+            while (this.lightManager.hasLightWork()); // wait for all light updates to be done
+            this.world.calculateInitialSkylight(); // then recalculate sky light
         });
     }
 
     public void setBlockClosestToColor(BlockPos blockPos, Color color) {
-        this.world.setBlockState(blockPos, colorToBlockDict.getBlockClosestToColor(color).getDefaultState(), 3 | 128);
+        BlockState blockState = colorToBlockDict.getBlockClosestToColor(color).getDefaultState();
+        this.setBlockState(blockPos, blockState, 3);
+        if (!this.blocksForLightUpdate.contains(blockPos))
+            this.blocksForLightUpdate.add(blockPos);
     }
 
-    @SubscribeEvent
-    public void updateLight(final TickEvent event) {
-        if (event.type == TickEvent.Type.SERVER) {
-            if (this.rasterizer.voxelizerStack.isEmpty()) {
-                MinecraftForge.EVENT_BUS.unregister(this);
-                return;
+    //@SubscribeEvent
+    public void updateLight() {//final TickEvent.PlayerTickEvent event) {
+        while (this.blocksForLightUpdate.size() > 0) {
+            this.lightManager.checkBlock(this.blocksForLightUpdate.get(0));
+            this.blocksForLightUpdate.remove(0);
+            if (this.blocksForLightUpdate.size() % 100 == 0) {
+                System.out.println(this.blocksForLightUpdate.size());
             }
-
-            //System.out.println(this.rasterizer.voxelizerStack.size());
-
-            lightManager.checkBlock(this.rasterizer.voxelizerStack.get(0).blockPos);
-            this.rasterizer.voxelizerStack.remove(0);
         }
+
+        //if (this.blocksForLightUpdate.size() == 0) {
+        //    MinecraftForge.EVENT_BUS.unregister(this);
+        //}
     }
+
+    @Override
+    public boolean setBlockState(BlockPos blockPos, BlockState blockState, int flag) {
+        return this.world.setBlockState(blockPos, blockState, flag, 512);
+    }
+
+    @Override
+    public boolean setBlockState(BlockPos blockPos, BlockState blockState, int flag, int i) {
+        return this.world.setBlockState(blockPos, blockState, flag, i);
+    }
+
+    @Override
+    public boolean removeBlock(BlockPos blockPos, boolean b) {
+        return false;
+    }
+
+    @Override
+    public boolean destroyBlock(BlockPos blockPos, boolean b, @Nullable Entity entity, int i) {
+        return false;
+    }
+
 }

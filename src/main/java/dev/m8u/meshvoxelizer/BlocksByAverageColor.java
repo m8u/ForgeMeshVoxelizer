@@ -1,6 +1,6 @@
 package dev.m8u.meshvoxelizer;
 
-import net.minecraft.block.Block;
+import net.minecraft.block.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -19,12 +19,14 @@ public class BlocksByAverageColor {
     }
 
     private BlocksByAverageColor(Minecraft minecraft) {
-        dictionary = new HashMap<>();
+        this.dictionary = new HashMap<>();
 
         BlockRendererDispatcher blockRendererDispatcher = minecraft.getBlockRendererDispatcher();
         for (Block block : ForgeRegistries.BLOCKS) {
-            if (!block.getRegistryName().toString().contains("terracotta"))
+            if (!(block.getClass().equals(Block.class))) {
+                //System.out.println("NOT A CUBE BLOCK");
                 continue;
+            }
             try {
                 TextureAtlasSprite sprite = blockRendererDispatcher.getModelForState(block.getDefaultState())
                         .getQuads(block.getDefaultState(), Direction.NORTH, minecraft.world.rand).get(0)
@@ -38,7 +40,7 @@ public class BlocksByAverageColor {
                     }
                 }
                 this.dictionary.put(averageColor, block);
-                System.out.println(block.getRegistryName());
+                //System.out.println(block.getRegistryName() + averageColor.toString());
             } catch (Exception e) {
                 //e.printStackTrace();
             }
@@ -52,26 +54,28 @@ public class BlocksByAverageColor {
     }
 
     private Color average(Color first, Color second) {
-        return new Color((int)Math.sqrt((Math.pow(first.getRed(), 2) + Math.pow(second.getRed(), 2)) / 2),
-                (int)Math.sqrt((Math.pow(first.getGreen(), 2) + Math.pow(second.getGreen(), 2)) / 2),
-                (int)Math.sqrt((Math.pow(first.getBlue(), 2) + Math.pow(second.getBlue(), 2)) / 2));
+        return new Color((first.getRed() + second.getRed()) / 2,
+                (first.getGreen() + second.getGreen()) / 2,
+                (first.getBlue() + second.getBlue()) / 2);
     }
 
     public Block getBlockClosestToColor(Color color) {
         //System.out.println((long) dictionary.keySet().size());
         Color closest = this.dictionary.keySet().stream().findAny().get();
-        Color minColorDiff = new Color(255, 255, 255);
+        double minColorDiff = weightedColorDiff(Color.BLACK, Color.WHITE);
         for (Color colorKey : dictionary.keySet()) {
-            if (Math.abs(colorKey.getRed() - color.getRed()) < minColorDiff.getRed()
-            && Math.abs(colorKey.getGreen() - color.getGreen()) < minColorDiff.getGreen()
-            && Math.abs(colorKey.getBlue() - color.getBlue()) < minColorDiff.getBlue()) {
-                minColorDiff = new Color(Math.abs(colorKey.getRed() - color.getRed()),
-                        Math.abs(colorKey.getGreen() - color.getGreen()),
-                        Math.abs(colorKey.getBlue() - color.getBlue()));
+            if (weightedColorDiff(colorKey, color) < minColorDiff) {
+                minColorDiff = weightedColorDiff(colorKey, color);
                 closest = colorKey;
             }
         }
-        //System.out.println(closest);
+        //System.out.println(dictionary.get(closest).getRegistryName()+" "+ closest.toString()+" for "+color.toString());
         return dictionary.get(closest);
+    }
+
+    public double weightedColorDiff(Color first, Color second) {
+        return Math.sqrt(Math.pow(((first.getRed()-second.getRed())), 2)
+                + Math.pow(((first.getGreen()-second.getGreen())), 2)
+                + Math.pow(((first.getBlue()-second.getBlue())), 2));
     }
 }
