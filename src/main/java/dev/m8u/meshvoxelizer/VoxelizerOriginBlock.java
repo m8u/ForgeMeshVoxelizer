@@ -14,6 +14,10 @@ import net.minecraft.world.World;
 
 
 public class VoxelizerOriginBlock extends Block {
+
+    VoxelizerScreen voxelizerScreen;
+
+
     public VoxelizerOriginBlock() {
         super(AbstractBlock.Properties.create(Material.MISCELLANEOUS));
         this.setRegistryName("meshvoxelizer","voxilizer_origin");
@@ -22,7 +26,11 @@ public class VoxelizerOriginBlock extends Block {
     @Override
     public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit) {
         LOGGER.info("onBlockActivated");
-        Minecraft.getInstance().displayGuiScreen(new VoxelizerScreen(pos, null));
+        if (voxelizerScreen == null) {
+            System.out.println("voxelizerScreen is null");
+            this.voxelizerScreen = new VoxelizerScreen(pos, null);
+        }
+        Minecraft.getInstance().displayGuiScreen(this.voxelizerScreen);
         return ActionResultType.SUCCESS;
     }
 }

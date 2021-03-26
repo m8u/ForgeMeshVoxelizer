@@ -13,15 +13,15 @@ import java.io.File;
 
 
 public class ChooseModelFileScreen extends Screen {
-    BlockPos originBlockPos;
+    protected VoxelizerScreen voxelizerScreen;
 
     protected ModelsList modelsList;
     protected Button useThisModelButton;
     protected String selectedBefore;
 
-    protected ChooseModelFileScreen(BlockPos originBlockPos, String selectedBefore) {
+    protected ChooseModelFileScreen(VoxelizerScreen caller, String selectedBefore) {
         super(new StringTextComponent("ChooseModelFileScreen"));
-        this.originBlockPos = originBlockPos;
+        this.voxelizerScreen = caller;
         this.selectedBefore = selectedBefore;
     }
 
@@ -34,8 +34,10 @@ public class ChooseModelFileScreen extends Screen {
         listModelsDirectory();
 
         useThisModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 3 * 2, 128, 20,
-                new StringTextComponent("Use this model"), (p_214187_1_) -> {
-            this.minecraft.displayGuiScreen(new VoxelizerScreen(this.originBlockPos, this.modelsList.getSelected().modelName));
+                new StringTextComponent("Use this model"),
+                (p_214187_1_) ->  {
+            this.voxelizerScreen.filenameSelected = this.modelsList.getSelected().modelName;
+            this.minecraft.displayGuiScreen(this.voxelizerScreen);
         }));
     }
 

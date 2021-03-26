@@ -100,7 +100,7 @@ public class WavefontOBJ {
                             face.add(new Integer[] { Integer.parseInt(objLineContents[1])-1 });
                         }
                     }
-                    faces.get(currentUsemtl).add(face);
+                    this.faces.get(currentUsemtl).add(face);
                     break;
             }
         }
