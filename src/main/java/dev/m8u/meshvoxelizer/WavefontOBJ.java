@@ -13,6 +13,8 @@ public class WavefontOBJ {
             texCoords = new ArrayList<>();
     Map<Material, ArrayList<ArrayList<Integer[]>>> faces = new HashMap<>(); // a dict of material-named faces regions, where face is a list of int[] {v, vt} or {v}
 
+    int faceCount = 0;
+
     boolean hasTextureCoords = false;
 
     private String meshVoxelizerDirectory;
@@ -65,8 +67,8 @@ public class WavefontOBJ {
                             Double.parseDouble(objLineContents[3])
                     };
                     for (double coord : vertex) {
-                        if (coord > vertexCoordNorm)
-                            vertexCoordNorm = coord;
+                        if (Math.abs(coord) > vertexCoordNorm)
+                            vertexCoordNorm = Math.abs(coord);
                     }
                     this.vertices.add(vertex);
                     break;
@@ -101,6 +103,7 @@ public class WavefontOBJ {
                         }
                     }
                     this.faces.get(currentUsemtl).add(face);
+                    this.faceCount++;
                     break;
             }
         }

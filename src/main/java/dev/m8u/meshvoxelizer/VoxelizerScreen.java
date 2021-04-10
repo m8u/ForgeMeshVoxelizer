@@ -2,7 +2,6 @@ package dev.m8u.meshvoxelizer;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.gui.ResourceLoadProgressGui;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
@@ -12,14 +11,12 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.IWorldWriter;
 import net.minecraft.world.World;
-import net.minecraft.world.lighting.*;
 import org.lwjgl.BufferUtils;
 
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 
 public class VoxelizerScreen extends Screen implements IWorldWriter {
@@ -39,7 +36,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
     protected String voxelResolutionString;
 
     ArrayList<BlockPos> blocksForLightUpdate;
-    private WorldLightManager lightManager;
 
     public VoxelizerScreen(BlockPos originBlockPos, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
@@ -53,7 +49,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
     protected void init() {
         this.world = this.minecraft.getIntegratedServer().getWorld(
                 this.minecraft.player.world.getDimensionKey());
-        this.lightManager = this.world.getLightManager();
         this.rasterizer = GLRasterizer.getInstance();
 
         this.chooseModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 4, 128, 20,
@@ -131,7 +126,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
         }
     }
 
-
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         InputMappings.Input key = InputMappings.getInputByCode(keyCode, scanCode);
         if (super.keyPressed(keyCode, scanCode, modifiers)) {
@@ -149,10 +143,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
         this.minecraft.getIntegratedServer().runAsync(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
             rasterizer.rasterizeMeshCuts(this, this.originBlockPos, filenameSelected, voxelResolution);
-            //MinecraftForge.EVENT_BUS.register(this);
-            //while (this.lightManager.hasLightWork()) { // wait for all light updates to be done
-            //    System.out.println("waiting for lightmanager to complete work");
-            //}
             this.world.calculateInitialSkylight(); // then recalculate sky light
         });
     }
@@ -160,23 +150,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
     public void setBlockClosestToColor(BlockPos blockPos, Color color) {
         BlockState blockState = colorToBlockDict.getBlockClosestToColor(color).getDefaultState();
         this.setBlockState(blockPos, blockState, 3);
-        if (!this.blocksForLightUpdate.contains(blockPos))
-            this.blocksForLightUpdate.add(blockPos);
-    }
-
-    //@SubscribeEvent
-    public void updateLight() {//final TickEvent.PlayerTickEvent event) {
-        while (this.blocksForLightUpdate.size() > 0) {
-            this.lightManager.checkBlock(this.blocksForLightUpdate.get(0));
-            this.blocksForLightUpdate.remove(0);
-            if (this.blocksForLightUpdate.size() % 100 == 0) {
-                System.out.println(this.blocksForLightUpdate.size());
-            }
-        }
-
-        //if (this.blocksForLightUpdate.size() == 0) {
-        //    MinecraftForge.EVENT_BUS.unregister(this);
-        //}
     }
 
     @Override

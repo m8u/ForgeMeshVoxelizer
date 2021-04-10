@@ -12,25 +12,35 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.world.World;
 
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class VoxelizerOriginBlock extends Block {
-
-    VoxelizerScreen voxelizerScreen;
-
+    Map<BlockPos, VoxelizerScreen> voxelizerScreenInstances;
 
     public VoxelizerOriginBlock() {
         super(AbstractBlock.Properties.create(Material.MISCELLANEOUS));
         this.setRegistryName("meshvoxelizer","voxilizer_origin");
+
+        this.voxelizerScreenInstances = new HashMap<>();
+    }
+
+    @Override
+    public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
+        LOGGER.info("onBlockAdded");
+        this.voxelizerScreenInstances.put(pos, new VoxelizerScreen(pos, null));
     }
 
     @Override
     public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit) {
         LOGGER.info("onBlockActivated");
-        if (voxelizerScreen == null) {
-            System.out.println("voxelizerScreen is null");
-            this.voxelizerScreen = new VoxelizerScreen(pos, null);
-        }
-        Minecraft.getInstance().displayGuiScreen(this.voxelizerScreen);
+
+        if (!this.voxelizerScreenInstances.containsKey(pos))
+            this.voxelizerScreenInstances.put(pos, new VoxelizerScreen(pos, null));
+
+        Minecraft.getInstance().displayGuiScreen(this.voxelizerScreenInstances.get(pos));
+
         return ActionResultType.SUCCESS;
     }
 }
