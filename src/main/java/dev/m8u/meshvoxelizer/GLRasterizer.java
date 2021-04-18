@@ -1,32 +1,37 @@
 package dev.m8u.meshvoxelizer;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
-import org.lwjgl.glfw.*;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.lang.Math;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.*;
 
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.*;
-import org.lwjgl.system.MemoryStack;
-
+import org.joml.AxisAngle4f;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
-import static org.lwjgl.glfw.Callbacks.*;
+import org.lwjgl.glfw.*;
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.glfw.Callbacks.*;
+import org.lwjgl.opengl.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
 import static org.lwjgl.system.MemoryUtil.*;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.system.MemoryStack;
 
 
 public class GLRasterizer {
     VoxelizerScreen voxelizerScreen;
     private BlockPos originBlockPos;
+    private Direction originBlockFacing;
     private int voxelResolution;
     private long window;
     WavefontOBJ model;
@@ -40,9 +45,10 @@ public class GLRasterizer {
         return new GLRasterizer();
     }
 
-    public void rasterizeMeshCuts(VoxelizerScreen caller, BlockPos originBlockPos, String filename, int voxelResolution) {
+    public void rasterizeMeshCuts(VoxelizerScreen caller, BlockPos originBlockPos, Direction originBlockFacing, String filename, int voxelResolution) {
         this.voxelizerScreen = caller;
         this.originBlockPos = originBlockPos;
+        this.originBlockFacing = originBlockFacing;
         this.voxelResolution = voxelResolution;
 
         initializeGLFW();
@@ -133,32 +139,34 @@ public class GLRasterizer {
                     "layout (location=0) in vec3 position;\n" +
                     "layout (location=1) in vec2 uvs;\n" +
                     "\n" +
-                    "out vec2 pass_uvs;\n" +
+                    "out vec2 passUVs;\n" +
                     "\n" +
                     "uniform mat4 projectionMatrix;\n" +
                     "\n" +
                     "void main(void){\n" +
                     "\tgl_Position = projectionMatrix * vec4(position, 1.0);\n" +
-                    "\tpass_uvs = uvs;\n" +
+                    "\tpassUVs = uvs;\n" +
                     "}";
             this.shaderProgram.createVertexShader(vertexShaderSource);
             String fragmentShaderSource = "#version 450 core\n" +
                     "\n" +
-                    "in vec2 pass_uvs;\n" +
+                    "in vec2 passUVs;\n" +
                     "\n" +
-                    "out vec4 out_Color;\n" +
+                    "out vec4 outColor;\n" +
                     "\n" +
+                    "uniform vec3 baseColor;\n" +
                     "uniform int textureFlag;\n" +
                     "uniform sampler2D textureSampler;\n" +
                     "\n" +
                     "void main(){\n" +
-                    "\tout_Color = textureFlag * texture(textureSampler, pass_uvs) * vec4(0.8, 0.8, 0.8, 1.0)\n" +
-                    "\t\t+ (1.0 - textureFlag) * vec4(0.8, 0.8, 0.8, 1.0);\n" +
+                    "\toutColor = textureFlag * texture(textureSampler, passUVs) * vec4(baseColor, 1.0)\n" +
+                    "\t\t+ (1.0 - textureFlag) * vec4(baseColor, 1.0);\n" +
                     "}";
             this.shaderProgram.createFragmentShader(fragmentShaderSource);
             this.shaderProgram.link();
-            this.shaderProgram.createUniform("projectionMatrix");
+            this.shaderProgram.createUniform("baseColor");
             this.shaderProgram.createUniform("textureFlag");
+            this.shaderProgram.createUniform("projectionMatrix");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -206,6 +214,14 @@ public class GLRasterizer {
         passes.put("x", new int[][]{new int[]{-90, 0, 1, 0}, new int[]{0, 0, 1, 0}});
         passes.put("y", new int[][]{new int[]{-90, 1, 0, 0}, new int[]{180, 0, 1, 0}});
 
+        Map<Direction, Float> facingAngles = new HashMap<>();
+        facingAngles.put(Direction.NORTH, (float) (0.0f + Math.PI));
+        facingAngles.put(Direction.WEST, (float) (Math.PI/2 + Math.PI));
+        facingAngles.put(Direction.SOUTH, (float) (Math.PI + Math.PI));
+        facingAngles.put(Direction.EAST, (float) (3*Math.PI/2 + Math.PI));
+
+        Vector3f originOffset;
+
         for (Map.Entry<String, int[][]> pass : passes.entrySet()) {
             System.out.println("[RETAINED RENDERING] pass");
             int z = 0;
@@ -224,40 +240,36 @@ public class GLRasterizer {
                     for (int component = y * this.voxelResolution * 3, x = 0;
                          component < y * this.voxelResolution * 3 + this.voxelResolution * 3;
                          component += 3, x++) {
-                        switch (pass.getKey()) {
-                            case "z":
-                                if (cut[component] == mask[component]
-                                        && cut[component + 1] == mask[component + 1]
-                                        && cut[component + 2] == mask[component + 2]) {
-                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(
-                                            -this.voxelResolution / 2 + (this.voxelResolution - 1 - x),
+
+                        if (cut[component] == mask[component]
+                                && cut[component + 1] == mask[component + 1]
+                                && cut[component + 2] == mask[component + 2]) {
+                            switch (pass.getKey()) {
+                                case "z":
+                                    originOffset = new Vector3f(-this.voxelResolution / 2 + (this.voxelResolution - 1 - x),
                                             -this.voxelResolution / 2 + y,
-                                            -this.voxelResolution / 2 + z - 1),
+                                            -this.voxelResolution / 2 + z - 1)
+                                            .rotate(new Quaternionf(new AxisAngle4f(facingAngles.get(this.originBlockFacing), 0, 1, 0)));
+                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add((int)originOffset.x, (int)originOffset.y, (int)originOffset.z),
                                             new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
-                                }
-                                break;
-                            case "x":
-                                if (cut[component] == mask[component]
-                                        && cut[component + 1] == mask[component + 1]
-                                        && cut[component + 2] == mask[component + 2]) {
-                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(
-                                            -this.voxelResolution / 2 + z - 1,
+                                    break;
+                                case "x":
+                                    originOffset = new Vector3f(-this.voxelResolution / 2 + z - 1,
                                             -this.voxelResolution / 2 + y,
-                                            -this.voxelResolution / 2 + x),
+                                            -this.voxelResolution / 2 + x)
+                                            .rotate(new Quaternionf(new AxisAngle4f(facingAngles.get(this.originBlockFacing), 0, 1, 0)));
+                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add((int)originOffset.x, (int)originOffset.y, (int)originOffset.z),
                                             new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
-                                }
-                                break;
-                            case "y":
-                                if (cut[component] == mask[component]
-                                        && cut[component + 1] == mask[component + 1]
-                                        && cut[component + 2] == mask[component + 2]) {
-                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(
-                                            -this.voxelResolution / 2 + x,
+                                    break;
+                                case "y":
+                                    originOffset = new Vector3f(-this.voxelResolution / 2 + x,
                                             -this.voxelResolution / 2 + z - 1,
-                                            -this.voxelResolution / 2 + y),
+                                            -this.voxelResolution / 2 + y)
+                                            .rotate(new Quaternionf(new AxisAngle4f(facingAngles.get(this.originBlockFacing), 0, 1, 0)));
+                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add((int)originOffset.x, (int)originOffset.y, (int)originOffset.z),
                                             new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
-                                }
-                                break;
+                                    break;
+                            }
                         }
                     }
                 }
@@ -276,58 +288,6 @@ public class GLRasterizer {
         this.isWorking = false;
     }
 
-    /*void renderCutImmediate(Color clearColor, Map.Entry<String, int[][]> pass, float glZ, Map<String, GLTexture> textures) {
-        glClearColor((float) (clearColor.getRed() / 255),
-                (float) (clearColor.getGreen() / 255),
-                (float) (clearColor.getBlue() / 255), 1.0f);
-        glLoadIdentity();
-        glOrtho(-1.0f, 1.0f, -1.0f, 1.0f, glZ, glZ + (2.0f / this.voxelResolution));
-        glClear(GL_COLOR_BUFFER_BIT);
-        //glPushAttrib(GL_COLOR_BUFFER_BIT);
-        glRotatef(pass.getValue()[0][0], pass.getValue()[0][1], pass.getValue()[0][2], pass.getValue()[0][3]);
-        glRotatef(pass.getValue()[1][0], pass.getValue()[1][1], pass.getValue()[1][2], pass.getValue()[1][3]);
-
-        for (Map.Entry<WavefontOBJ.Material, ArrayList<ArrayList<Integer[]>>> materialRegion : this.model.faces.entrySet()) {
-            WavefontOBJ.Material material = materialRegion.getKey();
-            if (material.hasTexture()) {
-                GLTexture texture = textures.get(material.name);
-                glBindTexture(GL_TEXTURE_2D, texture.id);
-                //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, texture.width, texture.height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture.buffer);
-            }
-            //System.out.println(material.name);
-
-            for (ArrayList<Integer[]> face : materialRegion.getValue()) {
-                glEnable(GL_TEXTURE_2D);
-                glBegin(GL_POLYGON);
-                {
-                    glColor3f(material.base.getRed() / 255f, material.base.getGreen() / 255f, material.base.getBlue() / 255f);
-                    for (Integer[] indices : face) {
-                        //System.out.println(Arrays.toString(model.texCoords.get(indices[1])));
-                        glTexCoord2d(1.0 - model.texCoords.get(indices[1])[0],
-                                model.texCoords.get(indices[1])[1]);
-                        glVertex3d(model.vertices.get(indices[0])[0],
-                                model.vertices.get(indices[0])[1],
-                                model.vertices.get(indices[0])[2]);
-
-                        *//*System.out.println("kek"
-                                + model.vertices.get(indices[0])[0] + " "
-                                + model.vertices.get(indices[0])[1] + " "
-                                + model.vertices.get(indices[0])[2]);*//*
-                    }
-                }
-                glEnd();
-                glDisable(GL_TEXTURE_2D);
-            }
-        }
-    }*/
-
     void renderCutRetained(Color clearColor, Map.Entry<String, int[][]> pass, float glZ, Map<String, Integer> textures) {
         GL11.glClearColor((float) (clearColor.getRed() / 255),
                 (float) (clearColor.getGreen() / 255),
@@ -343,6 +303,8 @@ public class GLRasterizer {
 
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
+        Color baseColor = model.faces.entrySet().iterator().next().getKey().base;
+        shaderProgram.setUniform("baseColor", new Vector3f(baseColor.getRed() / 255.0f, baseColor.getGreen() / 255.0f, baseColor.getBlue() / 255.0f));
         if (textures.size() > 0) {
             shaderProgram.setUniform("textureFlag", 1);
             GL13.glActiveTexture(GL13.GL_TEXTURE0);
@@ -475,10 +437,14 @@ public class GLRasterizer {
         public void setUniform(String uniformName, Matrix4f value) {
             // Dump the matrix into a float buffer
             try (MemoryStack stack = MemoryStack.stackPush()) {
-                FloatBuffer fb = stack.mallocFloat(16);
-                value.get(fb);
-                GL20C.glUniformMatrix4fv(uniforms.get(uniformName), false, fb);
+                FloatBuffer buffer = stack.mallocFloat(16);
+                value.get(buffer);
+                GL20C.glUniformMatrix4fv(uniforms.get(uniformName), false, buffer);
             }
+        }
+
+        public void setUniform(String uniformName, Vector3f value) {
+            GL20C.glUniform3f(uniforms.get(uniformName), value.x, value.y, value.z);
         }
 
         protected int createShader(String shaderCode, int shaderType) throws Exception {

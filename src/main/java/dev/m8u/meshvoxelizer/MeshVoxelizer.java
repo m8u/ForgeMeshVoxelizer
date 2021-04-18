@@ -3,9 +3,11 @@ package dev.m8u.meshvoxelizer;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.model.ModelResourceLocation;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -88,7 +90,6 @@ public class MeshVoxelizer {
     // Event bus for receiving Registry Events)
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents {
-
         static VoxelizerOriginBlock voxelizerOriginBlock = new VoxelizerOriginBlock();
         static BlockItem voxelizerOriginBlockItem = (BlockItem) new BlockItem(voxelizerOriginBlock,
                 new Item.Properties().group(ItemGroup.SEARCH))
@@ -98,7 +99,7 @@ public class MeshVoxelizer {
         public static void onBlocksRegistry(final RegistryEvent.Register<Block> blockRegistryEvent) {
             // register a new block here
             LOGGER.info("HELLO from Register Block");
-
+            //ModelLoader.addSpecialModel(new ModelResourceLocation(voxelizerOriginBlockItem.getRegistryName(),"facing"));
             blockRegistryEvent.getRegistry().register(voxelizerOriginBlock);
         }
 
@@ -106,7 +107,7 @@ public class MeshVoxelizer {
         public static void onItemsRegistry(final RegistryEvent.Register<Item> itemRegistryEvent) {
             // register a new item here
             LOGGER.info("HELLO from Register Item");
-
+            ModelLoader.addSpecialModel(new ModelResourceLocation(voxelizerOriginBlockItem.getRegistryName(),"facing"));
             itemRegistryEvent.getRegistry().register(voxelizerOriginBlockItem);
         }
     }

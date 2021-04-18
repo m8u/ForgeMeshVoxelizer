@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=east": { "model": "meshvoxelizer:block/voxelizer_origin" },
+    "facing=south": { "model": "meshvoxelizer:block/voxelizer_origin", "y": 90 },
+    "facing=west": { "model": "meshvoxelizer:block/voxelizer_origin", "y": 180 },
+    "facing=north": { "model": "meshvoxelizer:block/voxelizer_origin", "y": 270 }
+  }
+}

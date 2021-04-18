@@ -7,16 +7,14 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.IWorldWriter;
 import net.minecraft.world.World;
-import org.lwjgl.BufferUtils;
 
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.nio.FloatBuffer;
-import java.util.ArrayList;
 
 
 public class VoxelizerScreen extends Screen implements IWorldWriter {
@@ -26,6 +24,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
     GLRasterizer rasterizer;
 
     protected BlockPos originBlockPos;
+    protected Direction originBlockDirection;
 
     protected Button chooseModelButton;
     protected Button voxelizeButton;
@@ -35,15 +34,14 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
     protected String filenameSelected;
     protected String voxelResolutionString;
 
-    ArrayList<BlockPos> blocksForLightUpdate;
 
-    public VoxelizerScreen(BlockPos originBlockPos, String selected) {
+    public VoxelizerScreen(BlockPos originBlockPos, Direction originBlockDirection, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
 
         this.originBlockPos = originBlockPos;
-        this.filenameSelected = selected != null ? selected: "";
+        this.originBlockDirection = originBlockDirection;
 
-        this.blocksForLightUpdate = new ArrayList<>();
+        this.filenameSelected = selected != null ? selected: "";
     }
 
     protected void init() {
@@ -79,13 +77,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
             this.voxelResTextField.setText(this.voxelResolutionString);
 
         this.children.add(this.voxelResTextField);
-
-
-        FloatBuffer buffer = BufferUtils.createFloatBuffer(16);
-        for (int i = 0; i < 2; i++) {
-            buffer.put(new float[] { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f });
-        }
-        System.out.println(buffer.get(5));
     }
 
     public boolean isPauseScreen() {
@@ -142,7 +133,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
         System.out.println("BLOCK DICTIONARY DEFINED");
         this.minecraft.getIntegratedServer().runAsync(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
-            rasterizer.rasterizeMeshCuts(this, this.originBlockPos, filenameSelected, voxelResolution);
+            rasterizer.rasterizeMeshCuts(this, this.originBlockPos, this.originBlockDirection, filenameSelected, voxelResolution);
             this.world.calculateInitialSkylight(); // then recalculate sky light
         });
     }
