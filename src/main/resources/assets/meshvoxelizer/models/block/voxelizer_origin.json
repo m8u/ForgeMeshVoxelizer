@@ -2,10 +2,10 @@
   "parent": "block/cube",
 
   "textures": {
-    "north": "meshvoxelizer:blocks/voxelizer_origin_minus_x",
-    "south": "meshvoxelizer:blocks/voxelizer_origin_plus_x",
-    "east": "meshvoxelizer:blocks/voxelizer_origin_plus_y",
-    "west": "meshvoxelizer:blocks/voxelizer_origin_minus_y",
+    "north": "meshvoxelizer:blocks/voxelizer_origin_plus_x",
+    "south": "meshvoxelizer:blocks/voxelizer_origin_minus_x",
+    "east": "meshvoxelizer:blocks/voxelizer_origin_minus_y",
+    "west": "meshvoxelizer:blocks/voxelizer_origin_plus_y",
     "up": "meshvoxelizer:blocks/voxelizer_origin_plus_z",
     "down": "meshvoxelizer:blocks/voxelizer_origin_minus_z",
 

@@ -3,6 +3,7 @@ package dev.m8u.meshvoxelizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.vector.Vector3i;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -12,9 +13,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.*;
 
-import org.joml.AxisAngle4f;
 import org.joml.Matrix4f;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import org.lwjgl.glfw.*;
@@ -208,20 +207,28 @@ public class GLRasterizer {
             System.out.println("built indices array");
             System.out.println("indices: " + indices.length);
 
-            this.meshes.add(MeshLoader.createMesh(vertices, uvs, indices, textures.get(materialRegion.name)));
+            this.meshes.add(MeshLoader.createMesh(vertices, uvs, indices,
+                    (materialRegion.hasTexture() ? textures.get(materialRegion.name) : -1)));
         });
+
+        Map<Direction, Integer> facingAngles = new HashMap<>();
+        facingAngles.put(Direction.NORTH, 0);
+        facingAngles.put(Direction.WEST, 90);
+        facingAngles.put(Direction.SOUTH, 180);
+        facingAngles.put(Direction.EAST, 270);
+
         Map<String, int[][]> passes = new HashMap<>();
-        passes.put("z", new int[][]{new int[]{0, 0, 1, 0}, new int[]{0, 0, 1, 0}});
-        passes.put("x", new int[][]{new int[]{-90, 0, 1, 0}, new int[]{0, 0, 1, 0}});
-        passes.put("y", new int[][]{new int[]{-90, 1, 0, 0}, new int[]{180, 0, 1, 0}});
+        passes.put("z", new int[][] {
+                new int[] {0 + facingAngles.get(this.originBlockFacing), 0, 1, 0},
+                new int[] {0, 0, 1, 0}});
+        passes.put("x", new int[][] {
+                new int[] {-90 + facingAngles.get(this.originBlockFacing), 0, 1, 0},
+                new int[] {0, 0, 1, 0}});
+        passes.put("y", new int[][] {
+                new int[] {-90, 1, 0, 0},
+                new int[] {180 + facingAngles.get(this.originBlockFacing), 0, 1, 0}});
 
-        Map<Direction, Float> facingAngles = new HashMap<>();
-        facingAngles.put(Direction.NORTH, (float) (0.0f + Math.PI));
-        facingAngles.put(Direction.WEST, (float) (Math.PI/2 + Math.PI));
-        facingAngles.put(Direction.SOUTH, (float) (Math.PI + Math.PI));
-        facingAngles.put(Direction.EAST, (float) (3*Math.PI/2 + Math.PI));
-
-        Vector3f originOffset;
+        Vector3i originOffset;
 
         for (Map.Entry<String, int[][]> pass : passes.entrySet()) {
             System.out.println("[RETAINED RENDERING] pass");
@@ -247,27 +254,24 @@ public class GLRasterizer {
                                 && cut[component + 2] == mask[component + 2]) {
                             switch (pass.getKey()) {
                                 case "z":
-                                    originOffset = new Vector3f(-this.voxelResolution / 2 + (this.voxelResolution - 1 - x),
+                                    originOffset = new Vector3i(-this.voxelResolution / 2 + (this.voxelResolution - 1 - x),
                                             -this.voxelResolution / 2 + y,
-                                            -this.voxelResolution / 2 + z - 1)
-                                            .rotate(new Quaternionf(new AxisAngle4f(facingAngles.get(this.originBlockFacing), 0, 1, 0)));
-                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add((int)originOffset.x, (int)originOffset.y, (int)originOffset.z),
+                                            -this.voxelResolution / 2 + z - 1);
+                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(originOffset),
                                             new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
                                     break;
                                 case "x":
-                                    originOffset = new Vector3f(-this.voxelResolution / 2 + z - 1,
+                                    originOffset = new Vector3i(-this.voxelResolution / 2 + z - 1,
                                             -this.voxelResolution / 2 + y,
-                                            -this.voxelResolution / 2 + x)
-                                            .rotate(new Quaternionf(new AxisAngle4f(facingAngles.get(this.originBlockFacing), 0, 1, 0)));
-                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add((int)originOffset.x, (int)originOffset.y, (int)originOffset.z),
+                                            -this.voxelResolution / 2 + x);
+                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(originOffset),
                                             new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
                                     break;
                                 case "y":
-                                    originOffset = new Vector3f(-this.voxelResolution / 2 + x,
+                                    originOffset = new Vector3i(-this.voxelResolution / 2 + x,
                                             -this.voxelResolution / 2 + z - 1,
-                                            -this.voxelResolution / 2 + y)
-                                            .rotate(new Quaternionf(new AxisAngle4f(facingAngles.get(this.originBlockFacing), 0, 1, 0)));
-                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add((int)originOffset.x, (int)originOffset.y, (int)originOffset.z),
+                                            -this.voxelResolution / 2 + y);
+                                    this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(originOffset),
                                             new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
                                     break;
                             }
