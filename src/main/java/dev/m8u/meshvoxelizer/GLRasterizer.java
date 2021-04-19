@@ -35,7 +35,7 @@ public class GLRasterizer {
     private int voxelResolution;
     private long window;
     WavefontOBJ model;
-    Mesh mesh;
+    ArrayList<Mesh> meshes;
 
     ShaderProgram shaderProgram;
 
@@ -54,11 +54,13 @@ public class GLRasterizer {
         initializeGLFW();
 
         try {
-            model = new WavefontOBJ(Minecraft.getInstance().gameDir.getAbsolutePath() + "/mods/MeshVoxelizer/" + filename);
+            this.model = new WavefontOBJ(Minecraft.getInstance().gameDir.getAbsolutePath() + "/mods/MeshVoxelizer/" + filename);
             System.out.println("MODEL LOADED SUCCESSFULLY");
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        this.meshes = new ArrayList<>();
 
         process();
 
@@ -171,44 +173,43 @@ public class GLRasterizer {
             e.printStackTrace();
         }
 
-        float[] vertices = new float[this.model.texCoords.size() * 3]; // yes texCoords size
-        float[] uvs = new float[this.model.texCoords.size() * 2];
-
-        ArrayList<Integer> indicesArrayList = new ArrayList<>();
         this.model.faces.forEach((materialRegion, faces) -> {
+            float[] vertices = new float[this.model.texCoords.size() * 3]; // yes texCoords size
+            float[] uvs = new float[this.model.texCoords.size() * 2];
+
+            ArrayList<Integer> indicesArrayList = new ArrayList<>();
             faces.forEach((face) -> face.forEach((objVertex) -> {
-                vertices[objVertex[1]*3] = this.model.vertices.get(objVertex[0])[0].floatValue();
-                vertices[objVertex[1]*3 + 1] = this.model.vertices.get(objVertex[0])[1].floatValue();
-                vertices[objVertex[1]*3 + 2] = this.model.vertices.get(objVertex[0])[2].floatValue();
-                uvs[objVertex[1]*2] = 1 - this.model.texCoords.get(objVertex[1])[0].floatValue();
-                uvs[objVertex[1]*2 + 1] = this.model.texCoords.get(objVertex[1])[1].floatValue();
+                vertices[objVertex[1] * 3] = this.model.vertices.get(objVertex[0])[0].floatValue();
+                vertices[objVertex[1] * 3 + 1] = this.model.vertices.get(objVertex[0])[1].floatValue();
+                vertices[objVertex[1] * 3 + 2] = this.model.vertices.get(objVertex[0])[2].floatValue();
+                uvs[objVertex[1] * 2] = 1 - this.model.texCoords.get(objVertex[1])[0].floatValue();
+                uvs[objVertex[1] * 2 + 1] = this.model.texCoords.get(objVertex[1])[1].floatValue();
                 indicesArrayList.add(objVertex[1]);
             }));
+            System.out.println("built vertices and uvs arrays");
+            System.out.println("vertices: " + vertices.length);
+
+            int[] indices = new int[indicesArrayList.size()];
+            for (int i = 0; i < indicesArrayList.size(); i += 3) {
+                indices[i] = indicesArrayList.get(i);
+                boolean clockwise = false;
+                if (vertices[indicesArrayList.get(i + 1) * 3 + 2] >= vertices[indicesArrayList.get(i + 2) * 3 + 2]) {
+                    clockwise = true;
+                    indices[i + 1] = indicesArrayList.get(i + 2);
+                } else {
+                    indices[i + 1] = indicesArrayList.get(i + 1);
+                }
+                if (clockwise) {
+                    indices[i + 2] = indicesArrayList.get(i + 1);
+                } else {
+                    indices[i + 2] = indicesArrayList.get(i + 2);
+                }
+            }
+            System.out.println("built indices array");
+            System.out.println("indices: " + indices.length);
+
+            this.meshes.add(MeshLoader.createMesh(vertices, uvs, indices, textures.get(materialRegion.name)));
         });
-        System.out.println("built vertices and uvs arrays");
-        System.out.println("vertices: " + vertices.length);
-
-        int[] indices = new int[indicesArrayList.size()];
-        for (int i = 0; i < indicesArrayList.size(); i += 3) {
-            indices[i] = indicesArrayList.get(i);
-            boolean clockwise = false;
-            if (vertices[indicesArrayList.get(i + 1) * 3 + 2] >= vertices[indicesArrayList.get(i + 2) * 3 + 2]) {
-                clockwise = true;
-                indices[i + 1] = indicesArrayList.get(i + 2);
-            } else {
-                indices[i + 1] = indicesArrayList.get(i + 1);
-            }
-            if (clockwise) {
-                indices[i + 2] = indicesArrayList.get(i + 1);
-            } else {
-                indices[i + 2] = indicesArrayList.get(i + 2);
-            }
-        }
-        System.out.println("built indices array");
-        System.out.println("indices: " + indices.length);
-
-        this.mesh = MeshLoader.createMesh(vertices, uvs, indices);
-
         Map<String, int[][]> passes = new HashMap<>();
         passes.put("z", new int[][]{new int[]{0, 0, 1, 0}, new int[]{0, 0, 1, 0}});
         passes.put("x", new int[][]{new int[]{-90, 0, 1, 0}, new int[]{0, 0, 1, 0}});
@@ -303,21 +304,26 @@ public class GLRasterizer {
 
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
-        Color baseColor = model.faces.entrySet().iterator().next().getKey().base;
-        shaderProgram.setUniform("baseColor", new Vector3f(baseColor.getRed() / 255.0f, baseColor.getGreen() / 255.0f, baseColor.getBlue() / 255.0f));
-        if (textures.size() > 0) {
-            shaderProgram.setUniform("textureFlag", 1);
-            GL13.glActiveTexture(GL13.GL_TEXTURE0);
-            int id = textures.entrySet().iterator().next().getValue();
-            glBindTexture(GL_TEXTURE_2D, id);
-        } else {
-            shaderProgram.setUniform("textureFlag", 0);
-        }
-        GL30.glBindVertexArray(this.mesh.getVaoID());
-        GL20.glEnableVertexAttribArray(0);
-        GL20.glEnableVertexAttribArray(1);
+        for (Mesh mesh : meshes) {
+            Color baseColor = model.faces.entrySet().iterator().next().getKey().base;
+            shaderProgram.setUniform("baseColor",
+                    new Vector3f(baseColor.getRed() / 255.0f,
+                            baseColor.getGreen() / 255.0f,
+                            baseColor.getBlue() / 255.0f));
+            if (textures.size() > 0) {
+                shaderProgram.setUniform("textureFlag", 1);
+                GL13.glActiveTexture(GL13.GL_TEXTURE0);
+                int id = mesh.getTextureId();
+                glBindTexture(GL_TEXTURE_2D, id);
+            } else {
+                shaderProgram.setUniform("textureFlag", 0);
+            }
+            GL30.glBindVertexArray(mesh.getVaoID());
+            GL20.glEnableVertexAttribArray(0);
+            GL20.glEnableVertexAttribArray(1);
 
-        GL11.glDrawElements(GL11.GL_TRIANGLES, this.mesh.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
+            GL11.glDrawElements(GL11.GL_TRIANGLES, mesh.getVertexCount(), GL11.GL_UNSIGNED_INT, 0);
+        }
 
         GL20.glDisableVertexAttribArray(0);
         GL20.glDisableVertexAttribArray(1);
@@ -363,13 +369,18 @@ public class GLRasterizer {
             GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer, GL15.GL_STATIC_DRAW);
         }
 
-        public static Mesh createMesh(float[] positions, float[] uvs, int[] indices) {
+        public static Mesh createMesh(float[] positions, float[] uvs, int[] indices, int textureIndex) {
             int vao = genVAO();
+            //System.out.println("what the hell 1");
             storeData(0, 3, positions);
+            //System.out.println("what the hell 2");
             storeData(1, 2, uvs);
+            //System.out.println("what the hell 3");
             bindIndices(indices);
+            //System.out.println("what the hell 4");
             GL30.glBindVertexArray(0);
-            return new Mesh(vao, indices.length);
+            //System.out.println("what the hell 5");
+            return new Mesh(vao, indices.length, textureIndex);
         }
 
         private static int genVAO() {
@@ -384,10 +395,12 @@ public class GLRasterizer {
     static class Mesh {
         private int vao;
         private int vertices;
+        private int textureId;
 
-        public Mesh(int vao, int vertex) {
+        public Mesh(int vao, int vertex, int textureId) {
             this.vao = vao;
             this.vertices = vertex;
+            this.textureId = textureId;
         }
 
         public int getVaoID() {
@@ -396,6 +409,10 @@ public class GLRasterizer {
 
         public int getVertexCount() {
             return vertices;
+        }
+
+        public int getTextureId() {
+            return textureId;
         }
     }
 
