@@ -89,21 +89,35 @@ public class WavefontOBJ {
                     //System.out.println("using material: "+ currentUsemtl.name);
                     break;
                 case "f":
-                    ArrayList<Integer[]> face = new ArrayList<>();
-                    for (int i = 1; i < objLineContents.length; i++) {
+                    for (int i = 2; i < objLineContents.length-1; i++) {
+                        ArrayList<Integer[]> face = new ArrayList<>();
                         if (objLineContents[i].contains("//")) { // v//vn
-                            String[] doubleSlashSplit = objLineContents[i].split("//");
-                            face.add(new Integer[] { Integer.parseInt(doubleSlashSplit[0])-1 });
+                            String[][] doubleSlashSplits = { objLineContents[1].split("//"),
+                                    objLineContents[i].split("//"),
+                                    objLineContents[i+1].split("//") };
+                            face.add(new Integer[] { Integer.parseInt(doubleSlashSplits[0][0])-1 });
+                            face.add(new Integer[] { Integer.parseInt(doubleSlashSplits[1][0])-1 });
+                            face.add(new Integer[] { Integer.parseInt(doubleSlashSplits[2][0])-1 });
                         } else if (objLineContents[i].contains("/")) { // v/vt/vn
-                            String[] slashSplit = objLineContents[i].split("/");
-                            face.add(new Integer[] { Integer.parseInt(slashSplit[0])-1, Integer.parseInt(slashSplit[1])-1 });
+                            String[][] slashSplits = { objLineContents[1].split("/"),
+                                    objLineContents[i].split("/"),
+                                    objLineContents[i+1].split("/") };
+                            face.add(new Integer[] { Integer.parseInt(slashSplits[0][0])-1,
+                                    Integer.parseInt(slashSplits[0][1])-1 });
+                            face.add(new Integer[] { Integer.parseInt(slashSplits[1][0])-1,
+                                    Integer.parseInt(slashSplits[1][1])-1 });
+                            face.add(new Integer[] { Integer.parseInt(slashSplits[2][0])-1,
+                                    Integer.parseInt(slashSplits[2][1])-1 });
                             hasTextureCoords = true;
                         } else { // v
                             face.add(new Integer[] { Integer.parseInt(objLineContents[1])-1 });
+                            face.add(new Integer[] { Integer.parseInt(objLineContents[i])-1 });
+                            face.add(new Integer[] { Integer.parseInt(objLineContents[i+1])-1 });
                         }
+                        this.faces.get(currentUsemtl).add(face);
+
+                        this.faceCount++;
                     }
-                    this.faces.get(currentUsemtl).add(face);
-                    this.faceCount++;
                     break;
             }
         }
