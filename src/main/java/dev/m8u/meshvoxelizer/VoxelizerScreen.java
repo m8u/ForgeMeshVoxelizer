@@ -7,17 +7,34 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.entity.Entity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.Direction;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.world.DimensionType;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.IWorldWriter;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.BiomeManager;
+import net.minecraft.world.border.WorldBorder;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.IChunk;
+import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.lighting.WorldLightManager;
 
 import javax.annotation.Nullable;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 
-public class VoxelizerScreen extends Screen implements IWorldWriter {
+public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReader {
     World world;
     BlocksByAverageColor colorToBlockDict;
 
@@ -28,12 +45,14 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
 
     protected Button chooseModelButton;
     protected Button voxelizeButton;
+    protected Button undoButton;
     protected TextFieldWidget voxelResTextField;
     protected int progress; // 0 to 100
 
     protected String filenameSelected;
     protected String voxelResolutionString;
 
+    Map<BlockPos, BlockState> undoBuffer;
 
     public VoxelizerScreen(BlockPos originBlockPos, Direction originBlockDirection, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
@@ -56,11 +75,21 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
 
         this.voxelizeButton = this.addButton(new Button(this.width /  2 - 32, this.height / 4 * 3, 64, 20,
                 new StringTextComponent("Voxelize"),
-                (p_214187_1_) -> {
+        (p_214187_1_) -> {
             this.voxelizeButton.active = false;
             this.progress = 0;
             voxelize();
             this.voxelizeButton.active = true;
+        }));
+
+        this.undoBuffer = new HashMap<>();
+
+        this.undoButton = this.addButton(new Button(this.width /  2 - 32 + 128, this.height / 4 * 3, 64, 20,
+                new StringTextComponent("Undo"),
+        (p_214187_1_) -> {
+            this.undoBuffer.forEach((blockPos, blockState) -> {
+                this.setBlockState(blockPos, blockState, 3);
+            });
         }));
 
         this.voxelResTextField = new TextFieldWidget(this.font,
@@ -77,6 +106,10 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
             this.voxelResTextField.setText(this.voxelResolutionString);
 
         this.children.add(this.voxelResTextField);
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
     }
 
     public boolean isPauseScreen() {
@@ -115,6 +148,10 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
                     this.width / 2.0f - this.font.getStringWidth(this.progress+"%") / 2.0f,
                     this.height / 4.0f * 3 + 36 + 2, 0x00DD00);
         }
+
+        this.font.drawString(matrixStack, String.valueOf(this.undoBuffer.size()),
+                this.width / 2.0f + 128,
+                this.height / 4.0f * 3 + 36 + 2, 0x00DD00);
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -139,6 +176,8 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
     }
 
     public void setBlockClosestToColor(BlockPos blockPos, Color color) {
+        if (!this.undoBuffer.containsKey(blockPos))
+            this.undoBuffer.put(blockPos, this.getBlockState(blockPos));
         BlockState blockState = colorToBlockDict.getBlockClosestToColor(color).getDefaultState();
         this.setBlockState(blockPos, blockState, 3);
     }
@@ -163,7 +202,86 @@ public class VoxelizerScreen extends Screen implements IWorldWriter {
         return false;
     }
 
-    public void setProgress(int progress) {
-        this.progress = progress;
+
+    @Nullable
+    @Override
+    public IChunk getChunk(int x, int z, ChunkStatus requiredStatus, boolean nonnull) {
+        return null;
+    }
+
+    @Override
+    public boolean chunkExists(int chunkX, int chunkZ) {
+        return false;
+    }
+
+    @Override
+    public int getHeight(Heightmap.Type heightmapType, int x, int z) {
+        return 0;
+    }
+
+    @Override
+    public int getSkylightSubtracted() {
+        return 0;
+    }
+
+    @Override
+    public BiomeManager getBiomeManager() {
+        return null;
+    }
+
+    @Override
+    public Biome getNoiseBiomeRaw(int x, int y, int z) {
+        return null;
+    }
+
+    @Override
+    public boolean isRemote() {
+        return false;
+    }
+
+    @Override
+    public int getSeaLevel() {
+        return 0;
+    }
+
+    @Override
+    public DimensionType getDimensionType() {
+        return null;
+    }
+
+    @Override
+    public float func_230487_a_(Direction p_230487_1_, boolean p_230487_2_) {
+        return 0;
+    }
+
+    @Override
+    public WorldLightManager getLightManager() {
+        return null;
+    }
+
+    @Override
+    public WorldBorder getWorldBorder() {
+        return null;
+    }
+
+    @Override
+    public Stream<VoxelShape> func_230318_c_(@Nullable Entity p_230318_1_, AxisAlignedBB p_230318_2_, Predicate<Entity> p_230318_3_) {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public TileEntity getTileEntity(BlockPos pos) {
+        return null;
+    }
+
+    @Override
+    public BlockState getBlockState(BlockPos pos) {
+        return this.world.getBlockState(pos);
+    }
+
+    @Override
+    public FluidState getFluidState(BlockPos pos) {
+        return null;
     }
 }
