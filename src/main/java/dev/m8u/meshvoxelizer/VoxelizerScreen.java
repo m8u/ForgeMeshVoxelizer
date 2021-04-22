@@ -61,6 +61,8 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         this.originBlockDirection = originBlockDirection;
 
         this.filenameSelected = selected != null ? selected: "";
+
+        this.undoBuffer = new HashMap<>();
     }
 
     protected void init() {
@@ -82,14 +84,13 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
             this.voxelizeButton.active = true;
         }));
 
-        this.undoBuffer = new HashMap<>();
-
         this.undoButton = this.addButton(new Button(this.width /  2 - 32 + 128, this.height / 4 * 3, 64, 20,
                 new StringTextComponent("Undo"),
         (p_214187_1_) -> {
             this.undoBuffer.forEach((blockPos, blockState) -> {
                 this.setBlockState(blockPos, blockState, 3);
             });
+            this.undoBuffer = new HashMap<>();
         }));
 
         this.voxelResTextField = new TextFieldWidget(this.font,
@@ -120,6 +121,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         super.tick();
         this.voxelResTextField.tick();
 
+        this.undoButton.visible = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
     }
 
     public void renderBackground(MatrixStack matrixStack) {
@@ -148,10 +150,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
                     this.width / 2.0f - this.font.getStringWidth(this.progress+"%") / 2.0f,
                     this.height / 4.0f * 3 + 36 + 2, 0x00DD00);
         }
-
-        this.font.drawString(matrixStack, String.valueOf(this.undoBuffer.size()),
-                this.width / 2.0f + 128,
-                this.height / 4.0f * 3 + 36 + 2, 0x00DD00);
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -170,7 +168,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         System.out.println("BLOCK DICTIONARY DEFINED");
         this.minecraft.getIntegratedServer().runAsync(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
-            rasterizer.rasterizeMeshCuts(this, this.originBlockPos, this.originBlockDirection, filenameSelected, voxelResolution);
+            this.rasterizer.rasterizeMeshCuts(this, this.originBlockPos, this.originBlockDirection, filenameSelected, voxelResolution);
             this.world.calculateInitialSkylight(); // then recalculate sky light
         });
     }

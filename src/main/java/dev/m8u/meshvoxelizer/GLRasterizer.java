@@ -28,6 +28,8 @@ import org.lwjgl.system.MemoryStack;
 
 
 public class GLRasterizer {
+    private static GLRasterizer instance;
+
     VoxelizerScreen voxelizerScreen;
     private BlockPos originBlockPos;
     private Direction originBlockFacing;
@@ -40,8 +42,13 @@ public class GLRasterizer {
 
     public boolean isWorking = false;
 
+    private GLRasterizer() {}
+
     public static GLRasterizer getInstance() {
-        return new GLRasterizer();
+        if (instance == null) {
+            instance = new GLRasterizer();
+        }
+        return instance;
     }
 
     public void rasterizeMeshCuts(VoxelizerScreen caller, BlockPos originBlockPos, Direction originBlockFacing, String filename, int voxelResolution) {
@@ -95,6 +102,7 @@ public class GLRasterizer {
         this.isWorking = true;
         System.out.println("processing...");
         int cutsDone = 0;
+        this.voxelizerScreen.setProgress(0);
 
         float[] mask = new float[3 * this.voxelResolution * this.voxelResolution];
         float[] cut = new float[3 * this.voxelResolution * this.voxelResolution];
@@ -185,8 +193,8 @@ public class GLRasterizer {
                 uvs[objVertex[1] * 2 + 1] = this.model.texCoords.get(objVertex[1])[1].floatValue();
                 indicesArrayList.add(objVertex[1]);
             }));
-            System.out.println("built vertices and uvs arrays");
-            System.out.println("vertices: " + vertices.length);
+            //System.out.println("built vertices and uvs arrays");
+            //System.out.println("vertices: " + vertices.length);
 
             int[] indices = new int[indicesArrayList.size()];
             for (int i = 0; i < indicesArrayList.size(); i += 3) {
@@ -204,11 +212,14 @@ public class GLRasterizer {
                     indices[i + 2] = indicesArrayList.get(i + 2);
                 }
             }
-            System.out.println("built indices array");
-            System.out.println("indices: " + indices.length);
+            //System.out.println("built indices array");
+            //System.out.println("indices: " + indices.length);
 
             this.meshes.add(MeshLoader.createMesh(vertices, uvs, indices,
-                    (materialRegion.hasTexture() ? textures.get(materialRegion.name) : -1)));
+                    (materialRegion.hasTexture() ? textures.get(materialRegion.name) : -1),
+                    new Vector3f(materialRegion.base.getRed() / 255.0f,
+                            materialRegion.base.getGreen() / 255.0f,
+                            materialRegion.base.getBlue() / 255.0f)));
         });
 
         Map<Direction, Integer> facingAngles = new HashMap<>();
@@ -231,7 +242,7 @@ public class GLRasterizer {
         Vector3i originOffset;
 
         for (Map.Entry<String, int[][]> pass : passes.entrySet()) {
-            System.out.println("[RETAINED RENDERING] pass");
+            System.out.println("[RETAINED RENDERING] pass " + pass.getKey());
             int z = 0;
             for (float glZ = -1.0f - (2.0f / this.voxelResolution);
                  glZ <= 1.0f + (2.0f / this.voxelResolution);
@@ -258,21 +269,21 @@ public class GLRasterizer {
                                             -this.voxelResolution / 2 + y,
                                             -this.voxelResolution / 2 + z - 1);
                                     this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(originOffset),
-                                            new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
+                                            new Color(cut[component], cut[component + 1], cut[component + 2]));
                                     break;
                                 case "x":
                                     originOffset = new Vector3i(-this.voxelResolution / 2 + z - 1,
                                             -this.voxelResolution / 2 + y,
                                             -this.voxelResolution / 2 + x);
                                     this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(originOffset),
-                                            new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
+                                            new Color(cut[component], cut[component + 1], cut[component + 2]));
                                     break;
                                 case "y":
                                     originOffset = new Vector3i(-this.voxelResolution / 2 + x,
                                             -this.voxelResolution / 2 + z - 1,
                                             -this.voxelResolution / 2 + y);
                                     this.voxelizerScreen.setBlockClosestToColor(this.originBlockPos.add(originOffset),
-                                            new Color(cut[component + 0], cut[component + 1], cut[component + 2]));
+                                            new Color(cut[component], cut[component + 1], cut[component + 2]));
                                     break;
                             }
                         }
@@ -310,15 +321,11 @@ public class GLRasterizer {
 
         for (Mesh mesh : meshes) {
             Color baseColor = model.faces.entrySet().iterator().next().getKey().base;
-            shaderProgram.setUniform("baseColor",
-                    new Vector3f(baseColor.getRed() / 255.0f,
-                            baseColor.getGreen() / 255.0f,
-                            baseColor.getBlue() / 255.0f));
+            shaderProgram.setUniform("baseColor", mesh.getBaseColor());
             if (textures.size() > 0) {
                 shaderProgram.setUniform("textureFlag", 1);
                 GL13.glActiveTexture(GL13.GL_TEXTURE0);
-                int id = mesh.getTextureId();
-                glBindTexture(GL_TEXTURE_2D, id);
+                glBindTexture(GL_TEXTURE_2D, mesh.getTextureId());
             } else {
                 shaderProgram.setUniform("textureFlag", 0);
             }
@@ -373,18 +380,13 @@ public class GLRasterizer {
             GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer, GL15.GL_STATIC_DRAW);
         }
 
-        public static Mesh createMesh(float[] positions, float[] uvs, int[] indices, int textureIndex) {
+        public static Mesh createMesh(float[] positions, float[] uvs, int[] indices, int textureIndex, Vector3f baseColor) {
             int vao = genVAO();
-            //System.out.println("what the hell 1");
             storeData(0, 3, positions);
-            //System.out.println("what the hell 2");
             storeData(1, 2, uvs);
-            //System.out.println("what the hell 3");
             bindIndices(indices);
-            //System.out.println("what the hell 4");
             GL30.glBindVertexArray(0);
-            //System.out.println("what the hell 5");
-            return new Mesh(vao, indices.length, textureIndex);
+            return new Mesh(vao, indices.length, textureIndex, baseColor);
         }
 
         private static int genVAO() {
@@ -400,11 +402,13 @@ public class GLRasterizer {
         private int vao;
         private int vertices;
         private int textureId;
+        private Vector3f baseColor;
 
-        public Mesh(int vao, int vertex, int textureId) {
+        public Mesh(int vao, int vertex, int textureId, Vector3f baseColor) {
             this.vao = vao;
             this.vertices = vertex;
             this.textureId = textureId;
+            this.baseColor = baseColor;
         }
 
         public int getVaoID() {
@@ -417,6 +421,10 @@ public class GLRasterizer {
 
         public int getTextureId() {
             return textureId;
+        }
+
+        public Vector3f getBaseColor() {
+            return baseColor;
         }
     }
 
