@@ -28,6 +28,7 @@ import net.minecraft.world.lighting.WorldLightManager;
 
 import javax.annotation.Nullable;
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -46,6 +47,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
     protected Button chooseModelButton;
     protected Button voxelizeButton;
     protected Button undoButton;
+    protected Button replaceMaterialsButton;
     protected TextFieldWidget voxelResTextField;
     protected int progress; // 0 to 100
 
@@ -53,6 +55,8 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
     protected String voxelResolutionString;
 
     Map<BlockPos, BlockState> undoBuffer;
+
+    ArrayList<BlockState> materialsForReplacing;
 
     public VoxelizerScreen(BlockPos originBlockPos, Direction originBlockDirection, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
@@ -63,6 +67,8 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         this.filenameSelected = selected != null ? selected: "";
 
         this.undoBuffer = new HashMap<>();
+
+        this.materialsForReplacing = new ArrayList<>();
     }
 
     protected void init() {
@@ -71,31 +77,39 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         this.rasterizer = GLRasterizer.getInstance();
 
         this.chooseModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 4, 128, 20,
-                new StringTextComponent("Choose model file"), (p_214187_1_) -> {
+                new StringTextComponent("Choose model file.."),
+        (e) -> {
             this.minecraft.displayGuiScreen(new ChooseModelFileScreen(this, this.filenameSelected));
         }));
 
-        this.voxelizeButton = this.addButton(new Button(this.width /  2 - 32, this.height / 4 * 3, 64, 20,
+        this.voxelizeButton = this.addButton(new Button(this.width /  2 - 64, this.height / 5 * 3, 128, 20,
                 new StringTextComponent("Voxelize"),
-        (p_214187_1_) -> {
+        (e) -> {
             this.voxelizeButton.active = false;
             this.progress = 0;
             voxelize();
             this.voxelizeButton.active = true;
         }));
 
-        this.undoButton = this.addButton(new Button(this.width /  2 - 32, this.height / 4 * 3 + this.height / 8, 64, 20,
+        this.undoButton = this.addButton(new Button(this.width /  2 - 64, this.voxelizeButton.y + 24, 128, 20,
                 new StringTextComponent("Undo"),
-        (p_214187_1_) -> {
+        (e) -> {
             this.undoBuffer.forEach((blockPos, blockState) -> {
                 this.setBlockState(blockPos, blockState, 3);
             });
             this.undoBuffer = new HashMap<>();
         }));
-        this.undoButton.visible = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
+        this.undoButton.active = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
+
+        this.replaceMaterialsButton = this.addButton(new Button(this.width /  2 - 64, this.undoButton.y + 24, 128, 20,
+                new StringTextComponent("Replace materials.."),
+        (e) -> {
+            this.minecraft.displayGuiScreen(new ReplaceMaterialsScreen(this, this.materialsForReplacing));
+        }));
+        this.replaceMaterialsButton.active = !this.rasterizer.isWorking && this.materialsForReplacing.size() > 0;
 
         this.voxelResTextField = new TextFieldWidget(this.font,
-                this.width / 2 + 8, this.height / 2 + 32, 32, 16,
+                this.width / 2 + ((this.font.getStringWidth("Voxel resolution:") + 8 + 32) / 2 - 32), this.chooseModelButton.y + this.height/8, 32, 16,
                 new StringTextComponent("Voxel resolution"));
         this.voxelResTextField.setValidator(s -> s.matches("[0-9]+") || s.equals(""));
         this.voxelResTextField.setResponder(text -> {
@@ -122,7 +136,9 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         super.tick();
         this.voxelResTextField.tick();
 
-        this.undoButton.visible = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
+        this.voxelizeButton.visible = !this.rasterizer.isWorking;
+        this.undoButton.active = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
+        this.replaceMaterialsButton.active = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
     }
 
     public void renderBackground(MatrixStack matrixStack) {
@@ -141,15 +157,18 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
                 this.voxelResTextField.x - this.font.getStringWidth("Voxel resolution:") - 8,
                 this.voxelResTextField.y + (int)(this.font.FONT_HEIGHT / 2), 0xFFFFFF);
         this.voxelResTextField.render(matrixStack, mouseX, mouseY, partialTicks);
+        if (this.voxelResTextField.isMouseOver(mouseX, mouseY)) {
+            this.renderTooltip(matrixStack, new StringTextComponent("Resolution of the building box in voxels (blocks)"), mouseX, mouseY);
+        }
 
         // progress bar
         if (this.rasterizer.isWorking) {
-            fill(matrixStack, this.width / 2 - 100, this.height / 4 * 3 + 36,
-                    this.width / 2 - 100 + this.progress * 2, this.height / 4 * 3 + 36 + 12,
+            fill(matrixStack, this.width / 2 - 100, this.voxelizeButton.y,
+                    this.width / 2 - 100 + this.progress * 2, this.voxelizeButton.y + 12,
                     0xFFFFFFFF);
             this.font.drawString(matrixStack, this.progress+"%",
                     this.width / 2.0f - this.font.getStringWidth(this.progress+"%") / 2.0f,
-                    this.height / 4.0f * 3 + 36 + 2, 0x00DD00);
+                    this.voxelizeButton.y + 2, 0x00DA00);
         }
     }
 
@@ -166,7 +185,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
 
     protected void voxelize() {
         this.colorToBlockDict = BlocksByAverageColor.getInstance(this.minecraft);
-        System.out.println("BLOCK DICTIONARY DEFINED");
         this.minecraft.getIntegratedServer().runAsync(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
             this.rasterizer.rasterizeMeshCuts(this, this.originBlockPos, this.originBlockDirection, filenameSelected, voxelResolution);
@@ -178,6 +196,9 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         if (!this.undoBuffer.containsKey(blockPos))
             this.undoBuffer.put(blockPos, this.getBlockState(blockPos));
         BlockState blockState = colorToBlockDict.getBlockClosestToColor(color).getDefaultState();
+        if (!this.materialsForReplacing.contains(blockState)) {
+            this.materialsForReplacing.add(blockState);
+        }
         this.setBlockState(blockPos, blockState, 3);
     }
 

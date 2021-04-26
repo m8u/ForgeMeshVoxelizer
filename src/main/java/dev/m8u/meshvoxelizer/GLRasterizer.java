@@ -64,6 +64,7 @@ public class GLRasterizer {
             System.out.println("MODEL LOADED SUCCESSFULLY");
         } catch (IOException e) {
             e.printStackTrace();
+            return;
         }
 
         this.meshes = new ArrayList<>();

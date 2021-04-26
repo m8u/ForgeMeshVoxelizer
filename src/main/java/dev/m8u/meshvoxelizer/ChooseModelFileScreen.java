@@ -35,7 +35,7 @@ public class ChooseModelFileScreen extends Screen {
 
         useThisModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 10 * 9, 128, 20,
                 new StringTextComponent("Use this model"),
-                (p_214187_1_) ->  {
+                (e) ->  {
             this.voxelizerScreen.filenameSelected = this.modelsList.getSelected().modelName;
             this.minecraft.displayGuiScreen(this.voxelizerScreen);
         }));
@@ -132,15 +132,7 @@ public class ChooseModelFileScreen extends Screen {
     }
 
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        System.out.println("keyPressed");
-        InputMappings.Input mouseKey = InputMappings.getInputByCode(keyCode, scanCode);
-        if (super.keyPressed(keyCode, scanCode, modifiers)) {
-            return true;
-        } else if (this.minecraft.gameSettings.keyBindInventory.isActiveAndMatches(mouseKey)) {
-            this.closeScreen();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return this.voxelizerScreen.keyPressed(keyCode, scanCode, modifiers);
     }
 
 

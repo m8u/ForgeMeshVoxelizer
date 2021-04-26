@@ -9,6 +9,6 @@
     "up": "meshvoxelizer:blocks/voxelizer_origin_plus_z",
     "down": "meshvoxelizer:blocks/voxelizer_origin_minus_z",
 
-    "particle": "meshvoxelizer:blocks/voxelizer_origin_plus_x"
+    "particle": "meshvoxelizer:blocks/voxelizer_origin_particles"
   }
 }

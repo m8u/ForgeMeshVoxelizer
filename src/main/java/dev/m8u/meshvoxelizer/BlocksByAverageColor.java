@@ -14,8 +14,12 @@ import java.util.Map;
 public class BlocksByAverageColor {
     private Map<Color, Block> dictionary;
 
+    private static BlocksByAverageColor instance;
+
     public static BlocksByAverageColor getInstance(Minecraft minecraft) {
-        return new BlocksByAverageColor(minecraft);
+        if (instance == null)
+            instance = new BlocksByAverageColor(minecraft);
+        return instance;
     }
 
     private BlocksByAverageColor(Minecraft minecraft) {
