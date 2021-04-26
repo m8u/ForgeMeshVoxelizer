@@ -27,7 +27,7 @@ import net.minecraft.world.gen.Heightmap;
 import net.minecraft.world.lighting.WorldLightManager;
 
 import javax.annotation.Nullable;
-import java.awt.*;
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -84,7 +84,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
             this.voxelizeButton.active = true;
         }));
 
-        this.undoButton = this.addButton(new Button(this.width /  2 - 32 + 128, this.height / 4 * 3, 64, 20,
+        this.undoButton = this.addButton(new Button(this.width /  2 - 32, this.height / 4 * 3 + this.height / 8, 64, 20,
                 new StringTextComponent("Undo"),
         (p_214187_1_) -> {
             this.undoBuffer.forEach((blockPos, blockState) -> {
@@ -92,6 +92,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
             });
             this.undoBuffer = new HashMap<>();
         }));
+        this.undoButton.visible = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
 
         this.voxelResTextField = new TextFieldWidget(this.font,
                 this.width / 2 + 8, this.height / 2 + 32, 32, 16,

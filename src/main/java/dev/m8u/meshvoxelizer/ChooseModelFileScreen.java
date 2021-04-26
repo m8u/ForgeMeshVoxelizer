@@ -29,10 +29,11 @@ public class ChooseModelFileScreen extends Screen {
     }
 
     protected void init() {
-        this.modelsList = new ModelsList(this.minecraft, this.width/5, this.height/2, this.height/4, 256, 16);
+        this.modelsList = new ModelsList(this.minecraft, this,384, this.height/2,
+                (int) ((this.height / 12) + (this.font.FONT_HEIGHT+4) * 2.5) + this.height/10, this.height/4*3, 16);
         listModelsDirectory();
 
-        useThisModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 3 * 2, 128, 20,
+        useThisModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 10 * 9, 128, 20,
                 new StringTextComponent("Use this model"),
                 (p_214187_1_) ->  {
             this.voxelizerScreen.filenameSelected = this.modelsList.getSelected().modelName;
@@ -73,11 +74,12 @@ public class ChooseModelFileScreen extends Screen {
                 (int) (this.height / 12) + this.font.FONT_HEIGHT+4, 0xFFFFFF);
         this.font.drawString(matrixStack, modelsDirectoryMessage[2],
                 (int) (this.width / 2 - this.font.getStringWidth(modelsDirectoryMessage[2]) / 2),
-                (int) (this.height / 12) + (this.font.FONT_HEIGHT+4) * 3, 0xFFFF55);
+                (int) ((this.height / 12) + (this.font.FONT_HEIGHT+4) * 2.5), 0xFFFF55);
+        //this.renderTooltip(matrixStack, new StringTextComponent("Kek"), mouseX, mouseY);
 
         this.font.drawString(matrixStack, this.modelsList.getSelected().modelName,
                 (int) (this.width / 2 - this.font.getStringWidth(this.modelsList.getSelected().modelName) / 2),
-                (int) (this.height / 3 * 2) - this.font.FONT_HEIGHT*2, 0x55FF55);
+                this.useThisModelButton.y - this.font.FONT_HEIGHT*2, 0x55FF55);
 
     }
 
@@ -87,13 +89,31 @@ public class ChooseModelFileScreen extends Screen {
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (isMouseOverScrollbar(mouseX)) {
+            this.modelsList.setScrollAmount((mouseY - this.modelsList.getTop())
+                    * (this.modelsList.getMaxScroll() / (float) (this.modelsList.getBottom() - this.modelsList.getTop())));
+            return true;
+        }
+
         ModelsList.ModelsListEntry entry = getEntryUnderMousePos((int) mouseX, (int) mouseY);
-        if (entry != null) {
-            System.out.println(entry.modelName);
+        if (entry != null && entry.mouseClicked(mouseX, mouseY, button)) {
             entry.mouseClicked(mouseX, mouseY, button);
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (isMouseOverScrollbar(mouseX)) {
+            this.modelsList.setScrollAmount((mouseY - this.modelsList.getTop())
+                    * (this.modelsList.getMaxScroll() / (float) (this.modelsList.getBottom() - this.modelsList.getTop())));
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isMouseOverScrollbar(double mouseX) {
+        return mouseX >= this.modelsList.getScrollbarPosition() - 8 && mouseX < this.modelsList.getScrollbarPosition() + 32;
     }
 
     private ModelsList.ModelsListEntry getEntryUnderMousePos(final int mouseX, final int mouseY) {
@@ -123,14 +143,17 @@ public class ChooseModelFileScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
+
     class ModelsList extends ExtendedList<ModelsList.ModelsListEntry> {
+        ChooseModelFileScreen chooseModelFileScreen;
 
-
-        public ModelsList(Minecraft mcIn, int widthIn, int heightIn, int topIn, int bottomIn, int itemHeightIn) {
+        public ModelsList(Minecraft mcIn, ChooseModelFileScreen caller, int widthIn, int heightIn, int topIn, int bottomIn, int itemHeightIn) {
             super(mcIn, widthIn, heightIn, topIn, bottomIn, itemHeightIn);
             this.func_244605_b(false);
             this.func_244606_c(false);
-            this.setLeftPos(mcIn.currentScreen.width/2 - widthIn/2);
+            this.setLeftPos(mcIn.currentScreen.width / 2 - widthIn / 2);
+
+            this.chooseModelFileScreen = caller;
         }
 
         protected int getItemCount() {
@@ -139,7 +162,7 @@ public class ChooseModelFileScreen extends Screen {
 
         @Override
         protected int getScrollbarPosition() {
-            return this.getRight()+16;
+            return this.chooseModelFileScreen.width / 2 + this.getRowWidth() / 2;
         }
 
         protected int addEntry(ModelsListEntry entry) {
@@ -151,11 +174,10 @@ public class ChooseModelFileScreen extends Screen {
         }
 
         protected void renderBackground(MatrixStack matrixStack) {
-            ChooseModelFileScreen.this.renderBackground(matrixStack);
+            this.chooseModelFileScreen.renderBackground(matrixStack);
         }
 
         public boolean mouseClicked(double p_mouseClicked_1_, double p_mouseClicked_3_, int p_mouseClicked_5_) {
-            System.out.println("[list] mouseClicked");
             return false;
         }
 
@@ -175,9 +197,10 @@ public class ChooseModelFileScreen extends Screen {
                 System.out.println("mouseMoved");
             }
 
-            public boolean mouseClicked(double p_mouseClicked_1_, double p_mouseClicked_3_, int p_mouseClicked_5_) {
-                System.out.println("[entry] mouseClicked");
-                ModelsList.this.setSelected(this);
+            public boolean mouseClicked(double mouseX, double mouseY, int button) {
+                if (mouseY < ModelsList.this.getBottom() && mouseY > ModelsList.this.getTop()
+                        && mouseX < ModelsList.this.getScrollbarPosition() - 8)
+                    ModelsList.this.setSelected(this);
                 return false;
             }
         }
