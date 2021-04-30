@@ -41,6 +41,7 @@ public class GLRasterizer {
     ShaderProgram shaderProgram;
 
     public boolean isWorking = false;
+    public boolean shouldInterrupt = false;
 
     private GLRasterizer() {}
 
@@ -69,7 +70,11 @@ public class GLRasterizer {
 
         this.meshes = new ArrayList<>();
 
+        this.isWorking = true;
         process();
+        this.isWorking = false;
+        this.voxelizerScreen.switchVoxelizeAndInterruptButtons();
+        this.shouldInterrupt = false;
 
         glfwFreeCallbacks(window);
         glfwDestroyWindow(window);
@@ -100,7 +105,6 @@ public class GLRasterizer {
     }
 
     private void process() {
-        this.isWorking = true;
         System.out.println("processing...");
         int cutsDone = 0;
         this.voxelizerScreen.setProgress(0);
@@ -114,6 +118,9 @@ public class GLRasterizer {
         Map<String, Integer> textures = new HashMap<>();
 
         for (Map.Entry<WavefontOBJ.Material, ArrayList<ArrayList<Integer[]>>> materialRegion : model.faces.entrySet()) {
+            if (this.shouldInterrupt)
+                return;
+
             WavefontOBJ.Material material = materialRegion.getKey();
             if (material.hasTexture()) {
                 int width = material.texture.getWidth(), height = material.texture.getHeight();
@@ -182,6 +189,9 @@ public class GLRasterizer {
         }
 
         this.model.faces.forEach((materialRegion, faces) -> {
+            if (this.shouldInterrupt)
+                return;
+
             float[] vertices = new float[this.model.texCoords.size() * 3]; // yes texCoords size
             float[] uvs = new float[this.model.texCoords.size() * 2];
 
@@ -194,8 +204,6 @@ public class GLRasterizer {
                 uvs[objVertex[1] * 2 + 1] = this.model.texCoords.get(objVertex[1])[1].floatValue();
                 indicesArrayList.add(objVertex[1]);
             }));
-            //System.out.println("built vertices and uvs arrays");
-            //System.out.println("vertices: " + vertices.length);
 
             int[] indices = new int[indicesArrayList.size()];
             for (int i = 0; i < indicesArrayList.size(); i += 3) {
@@ -213,8 +221,6 @@ public class GLRasterizer {
                     indices[i + 2] = indicesArrayList.get(i + 2);
                 }
             }
-            //System.out.println("built indices array");
-            //System.out.println("indices: " + indices.length);
 
             this.meshes.add(MeshLoader.createMesh(vertices, uvs, indices,
                     (materialRegion.hasTexture() ? textures.get(materialRegion.name) : -1),
@@ -248,6 +254,8 @@ public class GLRasterizer {
             for (float glZ = -1.0f - (2.0f / this.voxelResolution);
                  glZ <= 1.0f + (2.0f / this.voxelResolution);
                  glZ += (2.0f / this.voxelResolution), z++) {
+                if (this.shouldInterrupt)
+                    return;
 
                 renderCutRetained(new Color(255, 0, 255), pass, glZ, textures);
                 glReadPixels(0, 0, this.voxelResolution, this.voxelResolution, GL_RGB, GL_FLOAT, mask);
@@ -302,7 +310,6 @@ public class GLRasterizer {
         }
         this.shaderProgram.cleanup();
 
-        this.isWorking = false;
     }
 
     void renderCutRetained(Color clearColor, Map.Entry<String, int[][]> pass, float glZ, Map<String, Integer> textures) {
@@ -342,6 +349,10 @@ public class GLRasterizer {
         GL30.glBindVertexArray(0);
 
         this.shaderProgram.unbind();
+    }
+
+    public void interrupt() {
+        this.shouldInterrupt = true;
     }
 
 

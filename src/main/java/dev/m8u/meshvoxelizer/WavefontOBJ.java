@@ -28,6 +28,9 @@ public class WavefontOBJ {
 
         Material currentUsemtl = null;
         while (objScanner.hasNextLine()) {
+            if (GLRasterizer.getInstance().shouldInterrupt)
+                return;
+
             String[] objLineContents = objScanner.nextLine().split(" ");
             switch (objLineContents[0]) {
                 case "mtllib":
@@ -42,7 +45,6 @@ public class WavefontOBJ {
                                 }
                                 currentNewmtl = new Material();
                                 currentNewmtl.name = mtlLineContents[1];
-                                //System.out.println("find a new material: " + mtlLineContents[1]);
                                 break;
                             case "Kd":
                                 currentNewmtl.base = new Color(Float.parseFloat(mtlLineContents[1]),
@@ -79,14 +81,11 @@ public class WavefontOBJ {
                     });
                     break;
                 case "usemtl":
-                    //System.out.println("USEMTL");
                     for (Material material : faces.keySet()) {
-                        System.out.println(material.name);
                         if (material.name.equals(objLineContents[1])) {
                             currentUsemtl = material;
                         }
                     }
-                    //System.out.println("using material: "+ currentUsemtl.name);
                     break;
                 case "f":
                     for (int i = 2; i < objLineContents.length-1; i++) {

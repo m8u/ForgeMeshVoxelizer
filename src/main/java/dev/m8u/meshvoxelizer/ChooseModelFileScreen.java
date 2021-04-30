@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.gui.widget.list.ExtendedList;
-import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.text.StringTextComponent;
 
 import java.io.File;
@@ -48,7 +47,7 @@ public class ChooseModelFileScreen extends Screen {
         for (String fileName : f.list()) {
             if (!fileName.substring(fileName.lastIndexOf('.')).equals(".obj"))
                 continue;
-            ModelsList.ModelsListEntry entry = modelsList.new ModelsListEntry(fileName);
+            ModelsList.ModelsListEntry entry = this.modelsList.new ModelsListEntry(fileName);
             this.modelsList.addEntry(entry);
             if (fileName.equals(this.selectedBefore)) {
                 this.modelsList.setSelected(entry);
@@ -85,7 +84,7 @@ public class ChooseModelFileScreen extends Screen {
 
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         super.mouseScrolled(mouseX, mouseY, delta);
-        return modelsList.mouseScrolled(mouseX, mouseY, delta);
+        return this.modelsList.mouseScrolled(mouseX, mouseY, delta);
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -152,7 +151,6 @@ public class ChooseModelFileScreen extends Screen {
             return super.getItemCount();
         }
 
-        @Override
         protected int getScrollbarPosition() {
             return this.chooseModelFileScreen.width / 2 + this.getRowWidth() / 2;
         }
@@ -183,10 +181,6 @@ public class ChooseModelFileScreen extends Screen {
 
             public void render(MatrixStack matrixStack, int entryIdx, int top, int left, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean p_194999_5_, float partialTicks) {
                 ChooseModelFileScreen.this.font.drawString(matrixStack, this.modelName, left, top + (int) ((16 - font.FONT_HEIGHT) / 2), 0xFFFFFF);
-            }
-
-            public void mouseMoved(double xPos, double mouseY) {
-                System.out.println("mouseMoved");
             }
 
             public boolean mouseClicked(double mouseX, double mouseY, int button) {

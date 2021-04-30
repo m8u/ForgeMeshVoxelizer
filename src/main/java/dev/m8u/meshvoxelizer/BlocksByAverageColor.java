@@ -28,7 +28,6 @@ public class BlocksByAverageColor {
         BlockRendererDispatcher blockRendererDispatcher = minecraft.getBlockRendererDispatcher();
         for (Block block : ForgeRegistries.BLOCKS) {
             if (!(block.getClass().equals(Block.class))) {
-                //System.out.println("NOT A CUBE BLOCK");
                 continue;
             }
             try {
@@ -44,7 +43,6 @@ public class BlocksByAverageColor {
                     }
                 }
                 this.dictionary.put(averageColor, block);
-                //System.out.println(block.getRegistryName() + averageColor.toString());
             } catch (Exception e) {
                 //e.printStackTrace();
             }
@@ -64,7 +62,6 @@ public class BlocksByAverageColor {
     }
 
     public Block getBlockClosestToColor(Color color) {
-        //System.out.println((long) dictionary.keySet().size());
         Color closest = this.dictionary.keySet().stream().findAny().get();
         double minColorDiff = weightedColorDiff(Color.BLACK, Color.WHITE);
         for (Color colorKey : dictionary.keySet()) {
@@ -73,7 +70,6 @@ public class BlocksByAverageColor {
                 closest = colorKey;
             }
         }
-        //System.out.println(dictionary.get(closest).getRegistryName()+" "+ closest.toString()+" for "+color.toString());
         return dictionary.get(closest);
     }
 

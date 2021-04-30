@@ -46,6 +46,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
 
     protected Button chooseModelButton;
     protected Button voxelizeButton;
+    protected Button interruptButton;
     protected Button undoButton;
     protected Button replaceMaterialsButton;
     protected TextFieldWidget voxelResTextField;
@@ -56,7 +57,9 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
 
     Map<BlockPos, BlockState> undoBuffer;
 
-    ArrayList<BlockState> materialsForReplacing;
+    Map<BlockState, ArrayList<BlockPos>> posListsByMaterials;
+
+    ReplaceMaterialsScreen replaceMaterialsScreen;
 
     public VoxelizerScreen(BlockPos originBlockPos, Direction originBlockDirection, String selected) {
         super(new StringTextComponent("VoxelizerScreen"));
@@ -68,7 +71,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
 
         this.undoBuffer = new HashMap<>();
 
-        this.materialsForReplacing = new ArrayList<>();
+        this.posListsByMaterials = new HashMap<>();
     }
 
     protected void init() {
@@ -85,11 +88,18 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         this.voxelizeButton = this.addButton(new Button(this.width /  2 - 64, this.height / 5 * 3, 128, 20,
                 new StringTextComponent("Voxelize"),
         (e) -> {
-            this.voxelizeButton.active = false;
+            this.switchVoxelizeAndInterruptButtons();
             this.progress = 0;
             voxelize();
-            this.voxelizeButton.active = true;
         }));
+
+        this.interruptButton = this.addButton(new Button(this.width /  2 - 64, this.height / 5 * 3, 128, 20,
+                new StringTextComponent("Interrupt"),
+        (e) -> {
+            this.rasterizer.interrupt();
+        }));
+        this.interruptButton.visible = false;
+        this.interruptButton.active = false;
 
         this.undoButton = this.addButton(new Button(this.width /  2 - 64, this.voxelizeButton.y + 24, 128, 20,
                 new StringTextComponent("Undo"),
@@ -104,9 +114,11 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         this.replaceMaterialsButton = this.addButton(new Button(this.width /  2 - 64, this.undoButton.y + 24, 128, 20,
                 new StringTextComponent("Replace materials.."),
         (e) -> {
-            this.minecraft.displayGuiScreen(new ReplaceMaterialsScreen(this, this.materialsForReplacing));
+            if (this.replaceMaterialsScreen == null)
+                this.replaceMaterialsScreen = new ReplaceMaterialsScreen(this, this.posListsByMaterials);
+            this.minecraft.displayGuiScreen(this.replaceMaterialsScreen);
         }));
-        this.replaceMaterialsButton.active = !this.rasterizer.isWorking && this.materialsForReplacing.size() > 0;
+        this.replaceMaterialsButton.active = !this.rasterizer.isWorking && this.posListsByMaterials.size() > 0;
 
         this.voxelResTextField = new TextFieldWidget(this.font,
                 this.width / 2 + ((this.font.getStringWidth("Voxel resolution:") + 8 + 32) / 2 - 32), this.chooseModelButton.y + this.height/8, 32, 16,
@@ -136,7 +148,6 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         super.tick();
         this.voxelResTextField.tick();
 
-        this.voxelizeButton.visible = !this.rasterizer.isWorking;
         this.undoButton.active = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
         this.replaceMaterialsButton.active = !this.rasterizer.isWorking && this.undoBuffer.size() > 0;
     }
@@ -163,12 +174,12 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
 
         // progress bar
         if (this.rasterizer.isWorking) {
-            fill(matrixStack, this.width / 2 - 100, this.voxelizeButton.y,
-                    this.width / 2 - 100 + this.progress * 2, this.voxelizeButton.y + 12,
+            fill(matrixStack, this.width / 2 - 100, this.voxelizeButton.y - 24,
+                    this.width / 2 - 100 + this.progress * 2, this.voxelizeButton.y - 12,
                     0xFFFFFFFF);
             this.font.drawString(matrixStack, this.progress+"%",
                     this.width / 2.0f - this.font.getStringWidth(this.progress+"%") / 2.0f,
-                    this.voxelizeButton.y + 2, 0x00DA00);
+                    this.voxelizeButton.y + 2 - 24, 0x00DA00);
         }
     }
 
@@ -183,6 +194,13 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
+    public void switchVoxelizeAndInterruptButtons() {
+        this.voxelizeButton.visible = !this.voxelizeButton.visible;
+        this.voxelizeButton.active = !this.voxelizeButton.active;
+        this.interruptButton.visible = !this.interruptButton.visible;
+        this.interruptButton.active = !this.interruptButton.active;
+    }
+
     protected void voxelize() {
         this.colorToBlockDict = BlocksByAverageColor.getInstance(this.minecraft);
         this.minecraft.getIntegratedServer().runAsync(() -> {
@@ -193,13 +211,20 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
     }
 
     public void setBlockClosestToColor(BlockPos blockPos, Color color) {
+        BlockState oldBlockState = this.getBlockState(blockPos);
+        if (String.valueOf(oldBlockState.getBlock().getRegistryName()).equals("meshvoxelizer:voxelizer_origin"))
+            return;
+
         if (!this.undoBuffer.containsKey(blockPos))
-            this.undoBuffer.put(blockPos, this.getBlockState(blockPos));
-        BlockState blockState = colorToBlockDict.getBlockClosestToColor(color).getDefaultState();
-        if (!this.materialsForReplacing.contains(blockState)) {
-            this.materialsForReplacing.add(blockState);
+            this.undoBuffer.put(blockPos, oldBlockState);
+
+        BlockState newBlockState = colorToBlockDict.getBlockClosestToColor(color).getDefaultState();
+        if (!this.posListsByMaterials.containsKey(newBlockState)) {
+            this.posListsByMaterials.put(newBlockState, new ArrayList<>());
         }
-        this.setBlockState(blockPos, blockState, 3);
+        this.posListsByMaterials.get(newBlockState).add(blockPos);
+
+        this.setBlockState(blockPos, newBlockState, 3);
     }
 
     @Override
