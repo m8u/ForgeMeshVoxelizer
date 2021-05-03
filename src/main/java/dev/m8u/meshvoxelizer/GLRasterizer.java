@@ -35,7 +35,7 @@ public class GLRasterizer {
     private Direction originBlockFacing;
     private int voxelResolution;
     private long window;
-    WavefontOBJ model;
+    WavefrontOBJ model;
     ArrayList<Mesh> meshes;
 
     ShaderProgram shaderProgram;
@@ -61,7 +61,7 @@ public class GLRasterizer {
         initializeGLFW();
 
         try {
-            this.model = new WavefontOBJ(Minecraft.getInstance().gameDir.getAbsolutePath() + "/mods/MeshVoxelizer/" + filename);
+            this.model = new WavefrontOBJ(Minecraft.getInstance().gameDir.getAbsolutePath() + "/mods/MeshVoxelizer/" + filename);
             System.out.println("MODEL LOADED SUCCESSFULLY");
         } catch (IOException e) {
             e.printStackTrace();
@@ -117,11 +117,11 @@ public class GLRasterizer {
 
         Map<String, Integer> textures = new HashMap<>();
 
-        for (Map.Entry<WavefontOBJ.Material, ArrayList<ArrayList<Integer[]>>> materialRegion : model.faces.entrySet()) {
+        for (Map.Entry<WavefrontOBJ.Material, ArrayList<ArrayList<Integer[]>>> materialRegion : model.faces.entrySet()) {
             if (this.shouldInterrupt)
                 return;
 
-            WavefontOBJ.Material material = materialRegion.getKey();
+            WavefrontOBJ.Material material = materialRegion.getKey();
             if (material.hasTexture()) {
                 int width = material.texture.getWidth(), height = material.texture.getHeight();
                 int[] pixels = new int[width * height];

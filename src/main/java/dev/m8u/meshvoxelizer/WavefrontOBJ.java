@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.*;
 
 
-public class WavefontOBJ {
+public class WavefrontOBJ {
     ArrayList<Double[]> vertices = new ArrayList<>(),
             texCoords = new ArrayList<>();
     Map<Material, ArrayList<ArrayList<Integer[]>>> faces = new HashMap<>(); // a dict of material-named faces regions, where face is a list of int[] {v, vt} or {v}
@@ -19,7 +19,7 @@ public class WavefontOBJ {
 
     private String meshVoxelizerDirectory;
 
-    WavefontOBJ(String modelPath) throws IOException {
+    WavefrontOBJ(String modelPath) throws IOException {
         this.meshVoxelizerDirectory = modelPath.substring(0, modelPath.lastIndexOf('/') + 1);
 
         Scanner objScanner = new Scanner(new File(modelPath));
