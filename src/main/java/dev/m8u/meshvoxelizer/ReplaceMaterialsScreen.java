@@ -20,9 +20,9 @@ import java.util.Map;
 
 
 public class ReplaceMaterialsScreen extends Screen {
-    protected VoxelizerScreen voxelizerScreen;
+    protected final VoxelizerScreen voxelizerScreen;
 
-    Map<UniqueNumberedBlockState, ArrayList<BlockPos>> posListsByMaterials;
+    final Map<UniqueNumberedBlockState, ArrayList<BlockPos>> posListsByMaterials;
     ArrayList<UniqueNumberedBlockState> originalBlockStates;
 
     MaterialsList materialsList;
@@ -36,7 +36,7 @@ public class ReplaceMaterialsScreen extends Screen {
         this.voxelizerScreen = caller;
         this.posListsByMaterials = new HashMap<>();
         posListsByMaterials.forEach((blockState, blockPos) -> {
-            this.posListsByMaterials.put(new UniqueNumberedBlockState(blockState, 0), blockPos);
+            this.posListsByMaterials.put(new UniqueNumberedBlockState(blockState), blockPos);
         });
     }
 
@@ -53,7 +53,16 @@ public class ReplaceMaterialsScreen extends Screen {
                 new StringTextComponent("Apply"),
                 (e) -> {
                     this.posListsByMaterials.forEach(((uniqueNumberedBlockState, blockPoses) -> {
-                        if (!this.originalBlockStates.contains(uniqueNumberedBlockState.blockState)) {
+                        boolean contains = false;
+                        for (UniqueNumberedBlockState original : originalBlockStates) {
+                            if (String.valueOf(original.blockState.getBlock().getRegistryName())
+                                    .equals(String.valueOf(uniqueNumberedBlockState.blockState.getBlock().getRegistryName()))
+                                    && original.number == uniqueNumberedBlockState.number) {
+                                contains = true;
+                                break;
+                            }
+                        }
+                        if (!contains) {
                             blockPoses.forEach((blockPos -> {
                                 this.voxelizerScreen.setBlockState(blockPos, uniqueNumberedBlockState.blockState, 3);
                             }));
@@ -181,7 +190,7 @@ public class ReplaceMaterialsScreen extends Screen {
                 .equals(this.newMaterialTextField.getText())) {
             try {
                 BlockState newBlockDefaultState = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(this.newMaterialTextField.getText())).getDefaultState();
-                UniqueNumberedBlockState newUniqueNumberedBlockState = new UniqueNumberedBlockState(newBlockDefaultState, 0);
+                UniqueNumberedBlockState newUniqueNumberedBlockState = new UniqueNumberedBlockState(newBlockDefaultState);
                 for (; ; newUniqueNumberedBlockState.number++) {
                     boolean contains = false;
                     for (Map.Entry<UniqueNumberedBlockState, ArrayList<BlockPos>> entry : this.posListsByMaterials.entrySet()) {
@@ -211,23 +220,23 @@ public class ReplaceMaterialsScreen extends Screen {
     }
 
 
-    class UniqueNumberedBlockState {
-        BlockState blockState;
+    static class UniqueNumberedBlockState {
+        final BlockState blockState;
         int number;
 
-        UniqueNumberedBlockState(BlockState blockState, int number) {
+        UniqueNumberedBlockState(BlockState blockState) {
             this.blockState = blockState;
-            this.number = number;
+            this.number = 0;
         }
     }
 
 
     class MaterialsList extends ExtendedList<MaterialsList.MaterialToReplaceEntry> {
-        Minecraft minecraft;
-        ReplaceMaterialsScreen replaceMaterialsScreen;
-        BlockRendererDispatcher blockRendererDispatcher;
+        final Minecraft minecraft;
+        final ReplaceMaterialsScreen replaceMaterialsScreen;
+        final BlockRendererDispatcher blockRendererDispatcher;
 
-        int actualWidth;
+        final int actualWidth;
 
         public MaterialsList(Minecraft mcIn, ReplaceMaterialsScreen caller, int widthIn, int heightIn, int topIn, int bottomIn, int itemHeightIn) {
             super(mcIn, widthIn, heightIn, topIn, bottomIn, itemHeightIn);
@@ -280,7 +289,7 @@ public class ReplaceMaterialsScreen extends Screen {
 
 
         class MaterialToReplaceEntry extends ExtendedList.AbstractListEntry<MaterialsList.MaterialToReplaceEntry> {
-            int index;
+            final int index;
             UniqueNumberedBlockState uniqueNumberedBlockState;
 
             MaterialToReplaceEntry(UniqueNumberedBlockState originalBlockState, int index) {

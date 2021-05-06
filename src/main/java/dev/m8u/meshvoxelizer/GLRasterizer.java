@@ -357,8 +357,8 @@ public class GLRasterizer {
 
 
     static class MeshLoader {
-        private static List<Integer> vaos = new ArrayList<>();
-        private static List<Integer> vbos = new ArrayList<>();
+        private static final List<Integer> vaos = new ArrayList<>();
+        private static final List<Integer> vbos = new ArrayList<>();
 
         private static FloatBuffer createFloatBuffer(float[] data) {
             FloatBuffer buffer = BufferUtils.createFloatBuffer(data.length);
@@ -411,10 +411,10 @@ public class GLRasterizer {
 
 
     static class Mesh {
-        private int vao;
-        private int vertices;
-        private int textureId;
-        private Vector3f baseColor;
+        private final int vao;
+        private final int vertices;
+        private final int textureId;
+        private final Vector3f baseColor;
 
         public Mesh(int vao, int vertex, int textureId, Vector3f baseColor) {
             this.vao = vao;
@@ -441,7 +441,7 @@ public class GLRasterizer {
     }
 
 
-    public class ShaderProgram {
+    public static class ShaderProgram {
         private final int programId;
         private int vertexShaderId;
         private int fragmentShaderId;

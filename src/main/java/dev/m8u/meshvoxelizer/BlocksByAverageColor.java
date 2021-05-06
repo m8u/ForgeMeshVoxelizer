@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BlocksByAverageColor {
-    private Map<Color, Block> dictionary;
+    private final Map<Color, Block> dictionary;
 
     private static BlocksByAverageColor instance;
 

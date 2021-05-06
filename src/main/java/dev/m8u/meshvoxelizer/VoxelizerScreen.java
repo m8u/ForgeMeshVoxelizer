@@ -41,8 +41,8 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
 
     GLRasterizer rasterizer;
 
-    protected BlockPos originBlockPos;
-    protected Direction originBlockDirection;
+    protected final BlockPos originBlockPos;
+    protected final Direction originBlockDirection;
 
     protected Button chooseModelButton;
     protected Button voxelizeButton;

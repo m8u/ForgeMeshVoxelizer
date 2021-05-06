@@ -17,10 +17,8 @@ public class WavefrontOBJ {
 
     boolean hasTextureCoords = false;
 
-    private String meshVoxelizerDirectory;
-
     WavefrontOBJ(String modelPath) throws IOException {
-        this.meshVoxelizerDirectory = modelPath.substring(0, modelPath.lastIndexOf('/') + 1);
+        String meshVoxelizerDirectory = modelPath.substring(0, modelPath.lastIndexOf('/') + 1);
 
         Scanner objScanner = new Scanner(new File(modelPath));
 
@@ -34,7 +32,7 @@ public class WavefrontOBJ {
             String[] objLineContents = objScanner.nextLine().split(" ");
             switch (objLineContents[0]) {
                 case "mtllib":
-                    Scanner mtlScanner = new Scanner(new File(this.meshVoxelizerDirectory + objLineContents[1]));
+                    Scanner mtlScanner = new Scanner(new File(meshVoxelizerDirectory + objLineContents[1]));
                     Material currentNewmtl = null;
                     while (mtlScanner.hasNextLine()) {
                         String[] mtlLineContents = mtlScanner.nextLine().split(" ");
@@ -52,7 +50,7 @@ public class WavefrontOBJ {
                                         Float.parseFloat(mtlLineContents[3]));
                                 break;
                             case "map_Kd":
-                                currentNewmtl.texture = ImageIO.read(new File(this.meshVoxelizerDirectory + mtlLineContents[1]));
+                                currentNewmtl.texture = ImageIO.read(new File(meshVoxelizerDirectory + mtlLineContents[1]));
                                 break;
                         }
                     }

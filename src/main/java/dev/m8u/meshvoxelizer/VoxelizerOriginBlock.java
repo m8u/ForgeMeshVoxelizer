@@ -63,5 +63,4 @@ public class VoxelizerOriginBlock extends Block {
 
         return ActionResultType.SUCCESS;
     }
-
 }

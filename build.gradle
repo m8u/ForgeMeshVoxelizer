@@ -131,9 +131,9 @@ jar {
         ])
     }
 
-//    from {
-//        configurations.shadow.collect { it.isDirectory() ? it : zipTree(it) }
-//    }
+    //from {
+    //    configurations.shadow.collect { it.isDirectory() ? it : zipTree(it) }
+    //}
 }
 
 jar.finalizedBy('reobfJar')

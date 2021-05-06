@@ -11,11 +11,11 @@ import java.io.File;
 
 
 public class ChooseModelFileScreen extends Screen {
-    protected VoxelizerScreen voxelizerScreen;
+    protected final VoxelizerScreen voxelizerScreen;
 
     protected ModelsList modelsList;
     protected Button useThisModelButton;
-    protected String selectedBefore;
+    protected final String selectedBefore;
 
     protected ChooseModelFileScreen(VoxelizerScreen caller, String selectedBefore) {
         super(new StringTextComponent("ChooseModelFileScreen"));
@@ -136,7 +136,7 @@ public class ChooseModelFileScreen extends Screen {
 
 
     class ModelsList extends ExtendedList<ModelsList.ModelsListEntry> {
-        ChooseModelFileScreen chooseModelFileScreen;
+        final ChooseModelFileScreen chooseModelFileScreen;
 
         public ModelsList(Minecraft mcIn, ChooseModelFileScreen caller, int widthIn, int heightIn, int topIn, int bottomIn, int itemHeightIn) {
             super(mcIn, widthIn, heightIn, topIn, bottomIn, itemHeightIn);
@@ -173,7 +173,7 @@ public class ChooseModelFileScreen extends Screen {
 
 
         class ModelsListEntry extends ExtendedList.AbstractListEntry<ModelsList.ModelsListEntry> {
-            String modelName;
+            final String modelName;
 
             ModelsListEntry(String modelName) {
                 this.modelName = modelName;
