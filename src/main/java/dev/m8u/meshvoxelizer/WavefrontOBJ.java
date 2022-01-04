@@ -49,8 +49,13 @@ public class WavefrontOBJ {
                                         Float.parseFloat(mtlLineContents[2]),
                                         Float.parseFloat(mtlLineContents[3]));
                                 break;
+                            case "map_Ke":
                             case "map_Kd":
-                                currentNewmtl.texture = ImageIO.read(new File(meshVoxelizerDirectory + mtlLineContents[1]));
+                                if (mtlLineContents[1].contains("/") || mtlLineContents[1].contains("\\\\")) {
+                                    currentNewmtl.texture = ImageIO.read(new File(mtlLineContents[1].replace("\\\\", "/")));
+                                } else {
+                                    currentNewmtl.texture = ImageIO.read(new File(meshVoxelizerDirectory + mtlLineContents[1]));
+                                }
                                 break;
                         }
                     }

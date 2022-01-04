@@ -18,11 +18,16 @@ import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
 import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.PrintStream;
 
 
 @Mod("meshvoxelizer")
 public class MeshVoxelizer {
+    public static ByteArrayOutputStream baos;
+    public PrintStream ps;
+
     public MeshVoxelizer() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::enqueueIMC);
@@ -46,7 +51,11 @@ public class MeshVoxelizer {
     private void processIMC(final InterModProcessEvent event) { }
 
     @SubscribeEvent
-    public void onServerStarting(FMLServerStartingEvent event) { }
+    public void onServerStarting(FMLServerStartingEvent event) {
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
+        System.setErr(ps);
+    }
 
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class RegistryEvents {

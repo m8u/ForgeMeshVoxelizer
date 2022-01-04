@@ -63,6 +63,7 @@ public class GLRasterizer {
         try {
             this.model = new WavefrontOBJ(Minecraft.getInstance().gameDir.getAbsolutePath() + "/mods/MeshVoxelizer/" + filename);
             System.out.println("MODEL LOADED SUCCESSFULLY");
+
         } catch (IOException e) {
             e.printStackTrace();
             return;
@@ -73,7 +74,6 @@ public class GLRasterizer {
         this.isWorking = true;
         process();
         this.isWorking = false;
-        this.voxelizerScreen.switchVoxelizeAndInterruptButtons();
         this.shouldInterrupt = false;
 
         glfwFreeCallbacks(window);
@@ -151,10 +151,10 @@ public class GLRasterizer {
 
         try {
             this.shaderProgram = new ShaderProgram();
-            String vertexShaderSource = "#version 450 core\n" +
+            String vertexShaderSource = "#version 330 core\n" +
                     "\n" +
-                    "layout (location=0) in vec3 position;\n" +
-                    "layout (location=1) in vec2 uvs;\n" +
+                    "in vec3 position;\n" +
+                    "in vec2 uvs;\n" +
                     "\n" +
                     "out vec2 passUVs;\n" +
                     "\n" +
@@ -165,7 +165,7 @@ public class GLRasterizer {
                     "\tpassUVs = uvs;\n" +
                     "}";
             this.shaderProgram.createVertexShader(vertexShaderSource);
-            String fragmentShaderSource = "#version 450 core\n" +
+            String fragmentShaderSource = "#version 330 core\n" +
                     "\n" +
                     "in vec2 passUVs;\n" +
                     "\n" +
@@ -245,7 +245,6 @@ public class GLRasterizer {
         passes.put("y", new int[][] {
                 new int[] {-90, 1, 0, 0},
                 new int[] {180 + facingAngles.get(this.originBlockFacing), 0, 1, 0}});
-
         Vector3i originOffset;
 
         for (Map.Entry<String, int[][]> pass : passes.entrySet()) {

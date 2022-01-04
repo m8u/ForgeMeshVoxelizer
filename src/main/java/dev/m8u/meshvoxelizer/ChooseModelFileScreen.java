@@ -8,6 +8,7 @@ import net.minecraft.client.gui.widget.list.ExtendedList;
 import net.minecraft.util.text.StringTextComponent;
 
 import java.io.File;
+import java.util.Objects;
 
 
 public class ChooseModelFileScreen extends Screen {
@@ -43,6 +44,18 @@ public class ChooseModelFileScreen extends Screen {
     // Fill the gui list with .obj filenames
     protected void listModelsDirectory() {
         File f = new File(this.minecraft.gameDir.getAbsolutePath()+"/mods/MeshVoxelizer");
+        if (f.list().length == 0) {
+            try {
+                String fileName = f.list()[0];
+            } catch (Exception e) {
+                System.err.println(e);
+                for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                    System.err.println(stackTraceElement);
+                }
+            }
+            this.minecraft.displayGuiScreen(this.voxelizerScreen);
+            return;
+        }
 
         for (String fileName : f.list()) {
             if (!fileName.substring(fileName.lastIndexOf('.')).equals(".obj"))
@@ -186,7 +199,10 @@ public class ChooseModelFileScreen extends Screen {
             public boolean mouseClicked(double mouseX, double mouseY, int button) {
                 if (mouseY < ModelsList.this.getBottom() && mouseY > ModelsList.this.getTop()
                         && mouseX < ModelsList.this.getScrollbarPosition() - 8)
-                    ModelsList.this.setSelected(this);
+                    if (!Objects.equals(ModelsList.this.getSelected().modelName, this.modelName))
+                        ModelsList.this.setSelected(this);
+                    else
+                        ChooseModelFileScreen.this.useThisModelButton.onPress();
                 return false;
             }
         }

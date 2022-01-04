@@ -82,13 +82,14 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         this.chooseModelButton = this.addButton(new Button(this.width / 2 - 64, this.height / 4, 128, 20,
                 new StringTextComponent("Choose model file.."),
         (e) -> {
+            MeshVoxelizer.baos.reset();
             this.minecraft.displayGuiScreen(new ChooseModelFileScreen(this, this.filenameSelected));
         }));
 
         this.voxelizeButton = this.addButton(new Button(this.width /  2 - 64, this.height / 5 * 3, 128, 20,
                 new StringTextComponent("Voxelize"),
         (e) -> {
-            this.switchVoxelizeAndInterruptButtons();
+            MeshVoxelizer.baos.reset();
             this.progress = 0;
             voxelize();
         }));
@@ -171,6 +172,12 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
         if (this.voxelResTextField.isMouseOver(mouseX, mouseY)) {
             this.renderTooltip(matrixStack, new StringTextComponent("Resolution of the building box in voxels (blocks)"), mouseX, mouseY);
         }
+        String[] baosContents = MeshVoxelizer.baos.toString().split("\n");
+        for (int i = 0; i < baosContents.length; i++) {
+            matrixStack.scale(0.5f, 0.5f, 0.5f);
+            this.font.drawString(matrixStack, baosContents[i], 0, i*12, 0xFF1111);
+            matrixStack.scale(2, 2, 2);
+        }
 
         // progress bar
         if (this.rasterizer.isWorking) {
@@ -191,6 +198,7 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
             this.closeScreen();
             return true;
         }
+
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -202,11 +210,13 @@ public class VoxelizerScreen extends Screen implements IWorldWriter, IWorldReade
     }
 
     protected void voxelize() {
+        this.switchVoxelizeAndInterruptButtons();
         this.colorToBlockDict = BlocksByAverageColor.getInstance(this.minecraft);
         this.minecraft.getIntegratedServer().runAsync(() -> {
             int voxelResolution = Integer.parseInt(this.voxelResTextField.getText());
             this.rasterizer.rasterizeMeshCuts(this, this.originBlockPos, this.originBlockDirection, filenameSelected, voxelResolution);
             this.world.calculateInitialSkylight(); // then recalculate sky light
+            this.switchVoxelizeAndInterruptButtons();
         });
     }
 

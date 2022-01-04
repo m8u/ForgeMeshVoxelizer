@@ -16,7 +16,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'java'
 
 group = 'dev.m8u'
-version = '1.0'
+version = '1.1'
 archivesBaseName = 'meshvoxelizer'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
@@ -97,7 +97,7 @@ dependencies {
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft 'net.minecraftforge:forge:1.16.5-36.0.22'
 
-    implementation group: 'org.joml', name: 'joml', version: '1.9.2'
+    shadow group: 'org.joml', name: 'joml', version: '1.9.2'                                                            // shadow <-> implementation
     // You may put jars on which you depend on in ./libs or you may define them like so..
     // compile "some.group:artifact:version:classifier"
     // compile "some.group:artifact:version"
@@ -131,10 +131,14 @@ jar {
         ])
     }
 
-    //from {
-    //    configurations.shadow.collect { it.isDirectory() ? it : zipTree(it) }
-    //}
+    from {                                                                                                              // shadowJar
+        configurations.shadow.collect { it.isDirectory() ? it : zipTree(it) }                              //
+    }                                                                                                                   //
 }
 
-jar.finalizedBy('reobfJar')
+//jar.finalizedBy('reobfJar')                                                                                           // runClient
 
+
+
+// !! build with jdk 1.8 !!
+// double ctrl, gradle clean, gradle build, see output at build/libs/
